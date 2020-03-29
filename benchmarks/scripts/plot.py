@@ -15,13 +15,10 @@ import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser("Plot tool")
-    """
     parser.add_argument(
-        "files",
-        nargs="+",
-        help="JSON plot files"
+        "-p", "--prefix",
+        help="Prefix for benchmark file selection"
     )
-    """
     args = parser.parse_args()
     return args
 
@@ -77,8 +74,9 @@ class ZBiasFreePlotter(object):
 
 def main():
     args = parse_args()
+    prefix = args.prefix
 
-    files = glob.glob("results/fill_avg_*.json")
+    files = glob.glob("results/{}_avg_*.json".format(prefix))
 
     data = [
         json.load(open(f))
@@ -96,7 +94,7 @@ def main():
     bias_free_plotter1 = ZBiasFreePlotter()
     bias_free_plotter2 = ZBiasFreePlotter()
 
-    fig.text(0.78, 0.93, "Total times [ms]", fontsize=9, family="monospace", weight="bold")
+    fig.text(0.77, 0.93, "Total times [ms]", fontsize=9, family="monospace", weight="bold")
     y_text = 0.9
 
     for i, entry in enumerate(data):

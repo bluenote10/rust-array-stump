@@ -21,6 +21,8 @@ fn run_fill_statistics() {
     let mut iters = Vec::new();
     let mut times = Vec::new();
     let mut fill_ratio = Vec::new();
+    let mut fill_min = Vec::new();
+    let mut fill_max = Vec::new();
     let mut num_blocks = Vec::new();
     let mut capacity = Vec::new();
     let mut num_cmp_calls = Vec::new();
@@ -34,6 +36,8 @@ fn run_fill_statistics() {
             iters.push(len);
             times.push(start.elapsed().as_secs_f64());
             fill_ratio.push(set.get_leaf_fill_ratio());
+            fill_min.push(set.get_leaf_fill_min());
+            fill_max.push(set.get_leaf_fill_max());
             num_blocks.push(set.get_num_blocks());
             capacity.push(set.get_capacity());
             num_cmp_calls.push(get_num_calls_array_tree());
@@ -41,7 +45,26 @@ fn run_fill_statistics() {
     }
     assert_eq!(set.len(), values.len());
 
-    helpers::export_stats(&iters, &times, &fill_ratio, &num_blocks, &capacity, &num_cmp_calls);
+    let mut values_to_remove = values.to_vec();
+    helpers::shuffle(&mut values_to_remove);
+
+    for (i, x) in values_to_remove.iter().enumerate() {
+        set.remove(x);
+        let len = i + 1;
+        if len % measure_every == 0 {
+            iters.push(len);
+            times.push(start.elapsed().as_secs_f64());
+            fill_ratio.push(set.get_leaf_fill_ratio());
+            fill_min.push(set.get_leaf_fill_min());
+            fill_max.push(set.get_leaf_fill_max());
+            num_blocks.push(set.get_num_blocks());
+            capacity.push(set.get_capacity());
+            num_cmp_calls.push(get_num_calls_array_tree());
+        }
+    }
+
+    helpers::export_stats(&iters, &times, &fill_ratio, &fill_min, &fill_max, &num_blocks, &capacity, &num_cmp_calls);
+    helpers::call_plots_stats();
 }
 
 fn main() {

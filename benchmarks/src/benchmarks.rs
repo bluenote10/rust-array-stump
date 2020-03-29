@@ -58,7 +58,7 @@ impl std::fmt::Display for BenchmarkMode {
             BenchmarkMode::Insert{ .. } => "insert",
             BenchmarkMode::Remove{ .. } => "remove",
         };
-        write!(f, "{:?}", name)
+        write!(f, "{}", name)
     }
 }
 
@@ -276,5 +276,5 @@ pub fn run_benchmarks(mode: BenchmarkMode, n: usize, num_runs: i32, all_combatan
     println!("Num calls slot array:  {:12}", get_num_calls_slot_array());
     println!("Num calls plain array: {:12}", get_num_calls_plain_array());
 
-    helpers::call_plots();
+    helpers::call_plots(&mode.to_string());
 }

@@ -117,7 +117,7 @@ where
         }
 
         if let Some((idx_block, idx_value)) = self.find(t) {
-            if self.data[idx_block].len() >= 1 {
+            if self.data[idx_block].len() > 1 {
                 self.data[idx_block].remove(idx_value);
             } else {
                 self.data.remove(idx_block);
@@ -131,6 +131,9 @@ where
 
     #[inline]
     pub fn find(&self, t: &T) -> Option<(usize, usize)> {
+        if self.data.len() == 0 {
+            return None;
+        }
         // Binary search for block index
         // println!("\nfind: {:?}", t);
         let (idx_block, equals) = binary_search_by(
@@ -199,6 +202,14 @@ where
 
     pub fn get_leaf_fill_ratio(&self) -> f64 {
         (self.num_elements as f64) / (self.capacity as f64 * self.data.len() as f64)
+    }
+
+    pub fn get_leaf_fill_min(&self) -> Option<usize> {
+        self.data.iter().map(|block| block.len()).min()
+    }
+
+    pub fn get_leaf_fill_max(&self) -> Option<usize> {
+        self.data.iter().map(|block| block.len()).max()
     }
 
     pub fn get_capacity(&self) -> u16 {

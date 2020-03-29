@@ -82,7 +82,7 @@ pub fn export_elapsed_times(name: &str, run: i32, filename: &str, iters: &[usize
 }
 
 
-pub fn call_plots() {
+pub fn call_plots(prefix: &str) {
     let script_path = Path::new(file!()).to_path_buf()
         .canonicalize().unwrap()
         .parent().unwrap().to_path_buf() // -> /src
@@ -90,6 +90,8 @@ pub fn call_plots() {
         .join("scripts")
         .join("plot.py");
     Command::new(script_path.as_os_str())
+        .arg("-p")
+        .arg(prefix)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .spawn()
@@ -99,12 +101,23 @@ pub fn call_plots() {
 }
 
 
-pub fn export_stats(iters: &[usize], times: &[f64], fill_ratio: &[f64], num_blocks: &[usize], capacity: &[u16], num_cmp_calls: &[u64]) {
+pub fn export_stats(
+    iters: &[usize],
+    times: &[f64],
+    fill_ratio: &[f64],
+    fill_min: &[Option<usize>],
+    fill_max: &[Option<usize>],
+    num_blocks: &[usize],
+    capacity: &[u16],
+    num_cmp_calls: &[u64],
+) {
 
     let json_data = json!({
         "iters": iters,
         "times": times,
         "fill_ratio": fill_ratio,
+        "fill_min": fill_min,
+        "fill_max": fill_max,
         "num_blocks": num_blocks,
         "capacity": capacity,
         "num_cmp_calls": num_cmp_calls,
