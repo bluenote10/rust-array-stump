@@ -1,16 +1,14 @@
-extern crate array_stump_benchmarks;
-extern crate array_stump;
-
-use array_stump_benchmarks::create_cmp;
-use array_stump_benchmarks::helpers;
-use array_stump_benchmarks::helpers::{FloatWrapper, get_num_calls_b_tree};
+use super::create_cmp;
+use super::helpers;
+use super::helpers::{FloatWrapper, get_num_calls_b_tree};
 
 use array_stump::ArrayStump;
 use std::collections::BTreeSet;
-use array_stump_benchmarks::alternatives::splay::SplaySet;
-use array_stump_benchmarks::alternatives::slot_array::SlotArray;
-use array_stump_benchmarks::alternatives::plain_array::PlainArray;
+use super::alternatives::splay::SplaySet;
+use super::alternatives::slot_array::SlotArray;
+use super::alternatives::plain_array::PlainArray;
 
+use std::rc::Rc;
 use std::time::Instant;
 use pretty_assertions::assert_eq;
 
@@ -49,22 +47,41 @@ where
 */
 
 #[derive(Clone, Copy)]
-enum BenchmarkMode {
-    Fill { measure_every: usize },
+pub enum BenchmarkMode {
+    Insert { measure_every: usize },
+    Remove { measure_every: usize },
 }
 
-fn run_generic_benchmark<T, F1, F2, F3>(mode: BenchmarkMode, values: &[f64], init: F1, insert: F2, get_len: F3) -> Vec<(usize, f64)>
+impl std::fmt::Display for BenchmarkMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let name = match self {
+            BenchmarkMode::Insert{ .. } => "insert",
+            BenchmarkMode::Remove{ .. } => "remove",
+        };
+        write!(f, "{:?}", name)
+    }
+}
+
+fn run_generic_benchmark<T, F1, F2, F3, F4>(
+    mode: BenchmarkMode,
+    values: &[f64],
+    init: F1,
+    insert: F2,
+    remove: F3,
+    get_len: F4,
+) -> Vec<(usize, f64)>
 where
     F1: Fn() -> T,
-    F2: Fn(&mut T, f64),
-    F3: Fn(&T) -> usize,
+    F2: Fn(&mut T, f64) -> bool,
+    F3: Fn(&mut T, f64) -> bool,
+    F4: Fn(&T) -> usize,
 
 {
     let mut set = init();
     let mut elapsed_times = Vec::with_capacity(values.len());
 
     match mode {
-        BenchmarkMode::Fill{ measure_every } => {
+        BenchmarkMode::Insert{ measure_every } => {
             let start = Instant::now();
             for (i, x) in values.iter().enumerate() {
                 insert(&mut set, *x);
@@ -76,12 +93,32 @@ where
             }
             assert_eq!(get_len(&set), values.len());
         }
+        BenchmarkMode::Remove{ measure_every } => {
+            // Insert
+            for x in values {
+                insert(&mut set, *x);
+            }
+            assert_eq!(get_len(&set), values.len());
+
+            let mut values_to_remove = values.to_vec();
+            helpers::shuffle(&mut values_to_remove);
+
+            // Remove
+            let start = Instant::now();
+            for (i, x) in values_to_remove.iter().enumerate() {
+                remove(&mut set, *x);
+
+                let len = i + 1;
+                if len % measure_every == 0 {
+                    elapsed_times.push((len, start.elapsed().as_secs_f64()));
+                }
+            }
+            assert_eq!(get_len(&set), 0);
+        }
     }
 
     elapsed_times
 }
-
-use std::rc::Rc;
 
 type BenchFunc = Rc<dyn Fn(BenchmarkMode, &[f64]) -> Vec<(usize, f64)>>;
 
@@ -100,7 +137,8 @@ impl AllBenches {
                 mode,
                 &values,
                 || ArrayStump::new(cmp_array_stump, 512),
-                |set, x| { set.insert(x); },
+                |set, x| { set.insert(x) },
+                |set, x| { set.remove(&x) },
                 |set| set.len(),
             )
         };
@@ -109,7 +147,8 @@ impl AllBenches {
                 mode,
                 &values,
                 || SplaySet::new(cmp_splay_tree),
-                |set, x| { set.insert(x); },
+                |set, x| { set.insert(x) },
+                |set, x| { set.remove(&x) },
                 |set| set.len(),
             )
         };
@@ -118,7 +157,8 @@ impl AllBenches {
                 mode,
                 &values,
                 || BTreeSet::new(),
-                |set, x| { set.insert(FloatWrapper(x)); },
+                |set, x| { set.insert(FloatWrapper(x)) },
+                |set, x| { set.remove(&FloatWrapper(x)) },
                 |set| set.len(),
             )
         };
@@ -127,7 +167,8 @@ impl AllBenches {
                 mode,
                 &values,
                 || SlotArray::new(cmp_slot_array, 20, 4),
-                |set, x| { set.insert(x); },
+                |set, x| { set.insert(x) },
+                |set, x| { set.remove(&x) },
                 |set| set.len(),
             )
         };
@@ -136,7 +177,8 @@ impl AllBenches {
                 mode,
                 &values,
                 || PlainArray::new(cmp_plain_array, 1024),
-                |set, x| { set.insert(x); },
+                |set, x| { set.insert(x) },
+                |set, x| { set.remove(&x) },
                 |set| set.len(),
             )
         };
@@ -195,12 +237,10 @@ fn construct_benchmark_tasks(all_benches: &AllBenches, run: i32, all_combatants:
 }
 
 
-fn run_fill_benchmarks() {
-    let n = 1000000;
-    let num_runs = 3;
-    let all_combatants = false;
-
-    let mode = BenchmarkMode::Fill{ measure_every: 25};
+pub fn run_benchmarks(mode: BenchmarkMode, n: usize, num_runs: i32, all_combatants: bool) {
+    if cfg!(debug_assertions) {
+        println!("WARNING: Debug assertions are enabled. Benchmarking should be done in `--release`.");
+    }
 
     let all_benches = AllBenches::new();
 
@@ -222,7 +262,7 @@ fn run_fill_benchmarks() {
                 helpers::export_elapsed_times(
                     &benchmark_task.name,
                     benchmark_task.run,
-                    &format!("results/fill_avg_{}_{}.json", benchmark_task.name, benchmark_task.run),
+                    &format!("results/{}_avg_{}_{}.json", mode, benchmark_task.name, benchmark_task.run),
                     &iters,
                     &times,
                 );
@@ -230,20 +270,11 @@ fn run_fill_benchmarks() {
         }
     }
 
-    helpers::call_plots();
-}
-
-
-fn main() {
-    if cfg!(debug_assertions) {
-        println!("WARNING: Debug assertions are enabled. Benchmarking should be done in `--release`.");
-    }
-
-    run_fill_benchmarks();
-
     println!("Num calls array stump: {:12}", get_num_calls_array_stump());
     println!("Num calls splay tree:  {:12}", get_num_calls_splay_tree());
     println!("Num calls B tree:      {:12}", get_num_calls_b_tree());
     println!("Num calls slot array:  {:12}", get_num_calls_slot_array());
     println!("Num calls plain array: {:12}", get_num_calls_plain_array());
+
+    helpers::call_plots();
 }
