@@ -33,6 +33,7 @@ where
 
     pub fn insert(&mut self, t: T) -> bool {
         // println!("\nInserting: {:?}", t);
+        // println!("{:?}", self.data);
         if self.data.len() == 0 {
             self.data.push(self.new_block(t));
             self.num_elements += 1;
@@ -71,8 +72,10 @@ where
             // println!("block l: {:?}", self.data[idx_block]);
             // println!("block r: {:?}", self.data[idx_block + 1]);
             // Determine into which of the two split blocks the new value goes.
-            // FIXME: Can we miss an "equals" case here if we go into block than doesn't have the equal element?
-            if (self.comparator)(&t, &self.data[idx_block + 1][0]) == Ordering::Greater {
+            let cmp = (self.comparator)(&t, &self.data[idx_block + 1][0]);
+            if cmp == Ordering::Equal {
+                return false;
+            } else if cmp == Ordering::Greater {
                 idx_block += 1;
             }
             // println!("idx_block: {}", idx_block);
@@ -305,13 +308,13 @@ mod test {
             }
         }
 
-        let mut test_value = data.clone();
-        if test_value.len() > 0 {
-            let min = data.iter().min().unwrap() - 1;
-            let max = data.iter().max().unwrap() + 1;
-            test_value.extend(&[min, max]);
+        let mut test_values = Vec::with_capacity(data.len() * 3);
+        for x in &data {
+            test_values.push(*x - 1);
+            test_values.push(*x);
+            test_values.push(*x + 1);
         }
-        (data, test_value)
+        (data, test_values)
     }
 
     fn test_against_reference(data: &[i32], value: i32) {
@@ -371,111 +374,119 @@ mod test {
         }};
     }
     macro_rules! insert_many {
-        ($at:expr, $data:expr) => {
+        ($a:expr, $data:expr) => {
             for x in $data.iter() {
-                $at.insert(x.clone());
+                $a.insert(x.clone());
             }
         };
     }
 
     #[test]
-    fn test_array_initial_push() {
-        let mut at = new_array!(16, vec![]);
-        assert_eq!(at.len(), 0);
-        at.insert(0);
-        assert_eq!(at.len(), 1);
+    fn test_array_stump_initial_push() {
+        let mut a = new_array!(16, vec![]);
+        assert_eq!(a.len(), 0);
+        a.insert(0);
+        assert_eq!(a.len(), 1);
     }
 
     #[test]
-    fn test_array_tree_prefers_push() {
-        let mut at = new_array!(16, vec![vec![1, 2], vec![4, 5]]);
-        assert_eq!(at.len(), 4);
-        at.insert(3);
-        assert_eq!(at.data, [vec![1, 2, 3], vec![4, 5]]);
-        assert_eq!(at.len(), 5);
+    fn test_array_stump_prefers_push() {
+        let mut a = new_array!(16, vec![vec![1, 2], vec![4, 5]]);
+        assert_eq!(a.len(), 4);
+        a.insert(3);
+        assert_eq!(a.data, [vec![1, 2, 3], vec![4, 5]]);
+        assert_eq!(a.len(), 5);
     }
 
     #[test]
-    fn test_array_no_index_hiccup() {
-        let mut at = new_array!(8, vec![vec![2], vec![4], vec![6, 8]]);
-        at.insert(7);
-        assert_eq!(at.data, [vec![2], vec![4], vec![6, 7, 8]]);
+    fn test_array_stump_no_index_hiccup() {
+        let mut a = new_array!(8, vec![vec![2], vec![4], vec![6, 8]]);
+        a.insert(7);
+        assert_eq!(a.data, [vec![2], vec![4], vec![6, 7, 8]]);
     }
 
     #[test]
-    fn test_array_tree_split() {
-        let mut at = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
-        assert_eq!(at.len(), 4);
-        at.insert(1);
-        assert_eq!(at.data, [vec![1, 2], vec![4], vec![6, 8]]);
-        assert_eq!(at.len(), 5);
+    fn test_split() {
+        let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
+        assert_eq!(a.len(), 4);
+        a.insert(1);
+        assert_eq!(a.data, [vec![1, 2], vec![4], vec![6, 8]]);
+        assert_eq!(a.len(), 5);
 
-        let mut at = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
-        assert_eq!(at.len(), 4);
-        at.insert(3);
-        assert_eq!(at.data, [vec![2, 3], vec![4], vec![6, 8]]);
-        assert_eq!(at.len(), 5);
+        let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
+        assert_eq!(a.len(), 4);
+        a.insert(3);
+        assert_eq!(a.data, [vec![2, 3], vec![4], vec![6, 8]]);
+        assert_eq!(a.len(), 5);
 
-        let mut at = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
-        assert_eq!(at.len(), 4);
-        at.insert(5);
-        assert_eq!(at.data, [vec![2], vec![4, 5], vec![6, 8]]);
-        assert_eq!(at.len(), 5);
+        let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
+        assert_eq!(a.len(), 4);
+        a.insert(5);
+        assert_eq!(a.data, [vec![2], vec![4, 5], vec![6, 8]]);
+        assert_eq!(a.len(), 5);
 
-        let mut at = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
-        assert_eq!(at.len(), 4);
-        at.insert(7);
-        assert_eq!(at.data, [vec![2, 4], vec![6, 7], vec![8]]);
-        assert_eq!(at.len(), 5);
+        let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
+        assert_eq!(a.len(), 4);
+        a.insert(7);
+        assert_eq!(a.data, [vec![2, 4], vec![6, 7], vec![8]]);
+        assert_eq!(a.len(), 5);
 
-        let mut at = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
-        assert_eq!(at.len(), 4);
-        at.insert(9);
-        assert_eq!(at.data, [vec![2, 4], vec![6], vec![8, 9]]);
-        assert_eq!(at.len(), 5);
+        let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8]]);
+        assert_eq!(a.len(), 4);
+        a.insert(9);
+        assert_eq!(a.data, [vec![2, 4], vec![6], vec![8, 9]]);
+        assert_eq!(a.len(), 5);
     }
 
     #[test]
-    fn test_array_tree_collect() {
+    fn test_split_on_index_with_equality() {
+        // We must make sure that the element at the split index has proper equality check
+        let mut a = new_array!(8, vec![vec![5, 7, 11, 17, 19, 22, 29, 30]]);
+        let equals = a.insert(19);
+        assert_eq!(equals, false);  // no insertion
+    }
+
+    #[test]
+    fn test_array_stump_collect() {
         for cap in vec![2, 3, 4, 5] {
-            let mut at = ArrayStump::new(int_comparator, cap as u16);
-            insert_many!(at, [1, 2, 3, 4]);
-            assert_eq!(at.collect(), [1, 2, 3, 4]);
-            assert_eq!(at.collect().len(), at.len());
+            let mut a = ArrayStump::new(int_comparator, cap as u16);
+            insert_many!(a, [1, 2, 3, 4]);
+            assert_eq!(a.collect(), [1, 2, 3, 4]);
+            assert_eq!(a.collect().len(), a.len());
 
-            let mut at = ArrayStump::new(int_comparator, cap as u16);
-            insert_many!(at, [1, 2, 3, 4]);
-            assert_eq!(at.collect(), [1, 2, 3, 4]);
-            assert_eq!(at.collect().len(), at.len());
+            let mut a = ArrayStump::new(int_comparator, cap as u16);
+            insert_many!(a, [1, 2, 3, 4]);
+            assert_eq!(a.collect(), [1, 2, 3, 4]);
+            assert_eq!(a.collect().len(), a.len());
         }
     }
 
     #[test]
     fn test_find() {
-        let at = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
-        assert_eq!(at.find(&2), Some((0, 0)));
-        assert_eq!(at.find(&4), Some((0, 1)));
-        assert_eq!(at.find(&6), Some((1, 0)));
-        assert_eq!(at.find(&8), Some((2, 0)));
+        let a = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
+        assert_eq!(a.find(&2), Some((0, 0)));
+        assert_eq!(a.find(&4), Some((0, 1)));
+        assert_eq!(a.find(&6), Some((1, 0)));
+        assert_eq!(a.find(&8), Some((2, 0)));
         for x in [1, 3, 5, 7, 9].iter() {
-            assert_eq!(at.find(x), None);
+            assert_eq!(a.find(x), None);
         }
     }
 
     #[test]
     fn test_remove() {
-        let mut at = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
-        at.remove(&2);
-        assert_eq!(at.collect(), vec![4, 6, 8]);
-        let mut at = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
-        at.remove(&4);
-        assert_eq!(at.collect(), vec![2, 6, 8]);
-        let mut at = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
-        at.remove(&6);
-        assert_eq!(at.collect(), vec![2, 4, 8]);
-        let mut at = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
-        at.remove(&8);
-        assert_eq!(at.collect(), vec![2, 4, 6]);
+        let mut a = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
+        a.remove(&2);
+        assert_eq!(a.collect(), vec![4, 6, 8]);
+        let mut a = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
+        a.remove(&4);
+        assert_eq!(a.collect(), vec![2, 6, 8]);
+        let mut a = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
+        a.remove(&6);
+        assert_eq!(a.collect(), vec![2, 4, 8]);
+        let mut a = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
+        a.remove(&8);
+        assert_eq!(a.collect(), vec![2, 4, 6]);
     }
 
     #[test]
@@ -488,7 +499,5 @@ mod test {
             expected.sort_by(|a, b| a.partial_cmp(b).unwrap());
             assert_eq!(at.collect(), expected);
         }
-
-
     }
 }

@@ -6,7 +6,8 @@ use serde_json::json;
 use std::process::{Command, Stdio};
 
 use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::{thread_rng, Rng};
+
 
 #[macro_export]
 macro_rules! create_cmp {
@@ -82,18 +83,17 @@ pub fn call_plots() {
         .parent().unwrap().to_path_buf() // -> /
         .join("scripts")
         .join("plot.py");
-
-    let mut child = Command::new(script_path.as_os_str())
+    Command::new(script_path.as_os_str())
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .spawn()
-        .expect("Failed to run Python plot.");
-
-    child.wait().expect("Failed to wait for child");
+        .expect("Failed to run Python plot.")
+        .wait()
+        .expect("Failed to wait for child");
 }
 
 
-pub fn export_stats(iters: &[usize], times: &[f64], fill_ratio: &[f64], num_blocks: &[usize], capacity: &[u16]) {
+pub fn export_stats(iters: &[usize], times: &[f64], fill_ratio: &[f64], num_blocks: &[usize], capacity: &[u16], num_cmp_calls: &[u64]) {
 
     let json_data = json!({
         "iters": iters,
@@ -101,6 +101,7 @@ pub fn export_stats(iters: &[usize], times: &[f64], fill_ratio: &[f64], num_bloc
         "fill_ratio": fill_ratio,
         "num_blocks": num_blocks,
         "capacity": capacity,
+        "num_cmp_calls": num_cmp_calls,
     });
 
     let path = Path::new("results/fill_stats.json");
@@ -110,6 +111,38 @@ pub fn export_stats(iters: &[usize], times: &[f64], fill_ratio: &[f64], num_bloc
     let f = File::create(path).expect("Unable to create json file.");
     serde_json::to_writer_pretty(f, &json_data).expect("Unable to write json file.");
 }
+
+
+pub fn call_plots_stats() {
+    let script_path = Path::new(file!()).to_path_buf()
+        .canonicalize().unwrap()
+        .parent().unwrap().to_path_buf() // -> /src
+        .parent().unwrap().to_path_buf() // -> /
+        .join("scripts")
+        .join("plot_stats.py");
+    Command::new(script_path.as_os_str())
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .spawn()
+        .expect("Failed to run Python plot.")
+        .wait()
+        .expect("Failed to wait for child");
+}
+
+
+pub fn gen_rand_values(n: usize) -> Vec<f64> {
+    let mut rng = rand::thread_rng();
+    let values: Vec<f64> = (0..n).map(|_| rng.gen()).collect();
+    values
+}
+
+
+pub fn gen_rand_values_i32(n: usize) -> Vec<i32> {
+    let mut rng = rand::thread_rng();
+    let values: Vec<i32> = (0..n).map(|_| rng.gen_range(0, 32)).collect();
+    values
+}
+
 
 pub fn shuffle<T>(v: &[T]) -> Vec<T>
 where
