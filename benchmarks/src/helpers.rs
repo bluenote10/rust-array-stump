@@ -150,12 +150,9 @@ pub fn gen_rand_values_i32(n: usize) -> Vec<i32> {
 }
 
 
-pub fn shuffle<T>(v: &[T]) -> Vec<T>
-where
-    T: Clone
+pub fn shuffle<T>(v: &mut Vec<T>) -> &mut Vec<T>
 {
     let mut rng = thread_rng();
-    let mut v_cloned = v.to_vec();
-    v_cloned.shuffle(&mut rng);
-    v_cloned
+    v.shuffle(&mut rng);
+    v
 }
