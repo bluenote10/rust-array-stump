@@ -135,7 +135,7 @@ where
         // println!("\nfind: {:?}", t);
         let (idx_block, equals) = binary_search_by(
             &self.data,
-            |block| (self.comparator)(&block[0], &t),
+            #[inline] |block| (self.comparator)(&block[0], &t),
         );
         if equals {
             return Some((idx_block, 0));
@@ -157,7 +157,7 @@ where
         // Binary search for value index
         let (idx_value, equals) = binary_search_by(
             &self.data[idx_block],
-            |x| (self.comparator)(&x, &t),
+            #[inline] |x| (self.comparator)(&x, &t),
         );
         // println!("{} {}", equals, idx_value);
         if equals {

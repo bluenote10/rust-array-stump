@@ -14,11 +14,16 @@ macro_rules! create_cmp {
     ($func:ident, $get:ident, $count:ident) => {
         static mut $count: u64 = 0;
 
-        #[inline]
+        // Inlining this function helps B tree performance a lot. Since
+        // our use case is to simulate a situation of much more complex
+        // compare functions (that are likely too big to be inlined),
+        // let's enforce the non-inlined case.
+        #[inline(never)]
         fn $func(a: &f64, b: &f64) -> std::cmp::Ordering {
             unsafe {
                 $count += 1;
             }
+            // Note the unnecessary exp calls are used to simulate a costly compare function
             a.exp().partial_cmp(&b.exp()).unwrap()
         }
 
@@ -52,6 +57,7 @@ impl PartialOrd for FloatWrapper {
 create_cmp!(cmp_b_tree, get_num_calls_b_tree, NUM_CALLS_B_TREE);
 
 impl Ord for FloatWrapper {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         cmp_b_tree(&self.0, &other.0)
     }

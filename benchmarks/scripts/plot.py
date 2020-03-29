@@ -113,7 +113,7 @@ def main():
             mean = stats[name].mean() * 1000
             std = stats[name].std() * 1000
             fig.text(0.77, y_text, name, fontsize=9, family="monospace")
-            fig.text(0.87, y_text, "{:7.3f}".format(mean), fontsize=9, family="monospace")
+            fig.text(0.87, y_text, "{:8.3f}".format(mean), fontsize=9, family="monospace")
             fig.text(0.93, y_text, "± {:6.3f}".format(std), fontsize=9, family="monospace")
             y_text -= 0.03
         else:
