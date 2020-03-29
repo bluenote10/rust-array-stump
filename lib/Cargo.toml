@@ -1,0 +1,10 @@
+[package]
+name = "array_stump"
+version = "0.1.0"
+authors = ["Fabian Keller <github.100.fkeller@spamgourmet.com>"]
+edition = "2018"
+
+[dev-dependencies]
+
+rand = "0.7.3"
+pretty_assertions = "0.6"
