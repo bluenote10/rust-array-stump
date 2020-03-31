@@ -258,23 +258,44 @@ where
 }
 
 
-/*
-pub fn find_last_block_smaller<T, F>(data: &[Vec<T>], mut f: F) -> (usize, bool)
+fn apply_reduced_capacity<T>(data: &mut Vec<Vec<T>>, new_capacity: u16)
 where
-    F: FnMut(&T) -> Ordering,
-    T: std::fmt::Debug,
+    T: Clone,
 {
-    (0, false)
+    let new_capacity = new_capacity as usize;
+    let mut i = 0;
+    while i < data.len() {
+        let len = data[i].len();
+        if len <= new_capacity {
+            i += 1;
+        } else {
+            let num_required_blocks = (len / new_capacity) + if len % new_capacity > 0 { 1 } else { 0 };
+            if num_required_blocks == 2 {
+                let tail_from = len / 2;
+                let tail_upto = len;
+                let block_tail = data[i][tail_from .. tail_upto].to_vec();
+                data[i].truncate(tail_from);
+                data.insert(i + 1, block_tail);
+                i += 2;
+            } else {
+                let original = data[i].clone();
+
+                let upto = len / new_capacity * 1;
+                data[i].truncate(upto);
+                i += 1;
+
+                for j in 1 .. num_required_blocks {
+                    let from = len / new_capacity * j;
+                    let upto = (len / new_capacity * (j + 1)).min(original.len());
+                    let block = original[from .. upto].to_vec();
+                    data.insert(i, block);
+                    i += 1;
+                }
+            }
+        }
+    }
 }
 
-pub fn find_insert_index<T, F>(data: &[Vec<T>], mut f: F) -> (usize, bool)
-where
-    F: FnMut(&T) -> Ordering,
-    T: std::fmt::Debug,
-{
-    (0, false)
-}
-*/
 
 #[cfg(test)]
 mod test {
@@ -510,5 +531,48 @@ mod test {
             expected.sort_by(|a, b| a.partial_cmp(b).unwrap());
             assert_eq!(at.collect(), expected);
         }
+    }
+
+    // ------------------------------------------------------------------------
+    // Capacity adaptation
+    // ------------------------------------------------------------------------
+
+    fn to_vec_i32(a: &[i32]) -> Vec<i32> {
+        a.to_vec()
+    }
+
+    macro_rules! vec2d {
+        ($($x:expr),*) => {{
+            let data = [ $(to_vec_i32(&$x)),* ].to_vec();
+            data
+        }}
+    }
+
+    #[test]
+    fn test_apply_reduced_capacity() {
+        let mut data = vec2d![[1, 2], [1, 2], [1, 2]];
+        apply_reduced_capacity(&mut data, 2);
+        assert_eq!(
+            data,
+            vec2d![[1, 2], [1, 2], [1, 2]]
+        );
+        let mut data = vec2d![[1, 2, 3], [1, 2, 3], [1, 2, 3]];
+        apply_reduced_capacity(&mut data, 2);
+        assert_eq!(
+            data,
+            vec2d![[1], [2, 3], [1], [2, 3], [1], [2, 3]],
+        );
+        let mut data = vec2d![[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]];
+        apply_reduced_capacity(&mut data, 2);
+        assert_eq!(
+            data,
+            vec2d![[1, 2], [3, 4], [1, 2], [3, 4], [1, 2], [3, 4]],
+        );
+        let mut data = vec2d![[1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]];
+        apply_reduced_capacity(&mut data, 2);
+        assert_eq!(
+            data,
+            vec2d![[1, 2], [3, 4], [5], [1, 2], [3, 4], [5], [1, 2], [3, 4], [5]],
+        );
     }
 }
