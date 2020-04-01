@@ -123,6 +123,12 @@ where
                 self.data.remove(idx_block);
             }
             self.num_elements -= 1;
+
+            if self.get_leaf_fill_ratio() < 0.1 && self.capacity > 2 {
+                self.capacity /= 2;
+                apply_reduced_capacity(&mut self.data, self.capacity);
+            }
+
             true
         } else {
             false
@@ -257,7 +263,12 @@ where
     (r, false)
 }
 
+#[inline]
+fn get_elements_per_block(i: usize, len: usize, num_blocks: usize) -> usize {
+    len / num_blocks + if i < (len % num_blocks) { 1 } else { 0 }
+}
 
+#[allow(dead_code)]
 fn apply_reduced_capacity<T>(data: &mut Vec<Vec<T>>, new_capacity: u16)
 where
     T: Clone,
@@ -271,25 +282,25 @@ where
         } else {
             let num_required_blocks = (len / new_capacity) + if len % new_capacity > 0 { 1 } else { 0 };
             if num_required_blocks == 2 {
-                let tail_from = len / 2;
-                let tail_upto = len;
-                let block_tail = data[i][tail_from .. tail_upto].to_vec();
-                data[i].truncate(tail_from);
+                let divide = get_elements_per_block(0, len, num_required_blocks);
+
+                let block_tail = data[i][divide .. ].to_vec();
+                data[i].truncate(divide);
                 data.insert(i + 1, block_tail);
                 i += 2;
             } else {
                 let original = data[i].clone();
 
-                let upto = len / new_capacity * 1;
-                data[i].truncate(upto);
+                let mut divide = get_elements_per_block(0, len, num_required_blocks);
+                data[i].truncate(divide);
                 i += 1;
 
                 for j in 1 .. num_required_blocks {
-                    let from = len / new_capacity * j;
-                    let upto = (len / new_capacity * (j + 1)).min(original.len());
-                    let block = original[from .. upto].to_vec();
+                    let next_divide = divide + get_elements_per_block(j, len, num_required_blocks);
+                    let block = original[divide .. next_divide].to_vec();
                     data.insert(i, block);
                     i += 1;
+                    divide = next_divide;
                 }
             }
         }
@@ -549,6 +560,24 @@ mod test {
     }
 
     #[test]
+    fn test_get_elements_per_block() {
+        assert_eq!(get_elements_per_block(0, 9, 2), 5);
+        assert_eq!(get_elements_per_block(1, 9, 2), 4);
+
+        assert_eq!(get_elements_per_block(0, 8, 3), 3);
+        assert_eq!(get_elements_per_block(1, 8, 3), 3);
+        assert_eq!(get_elements_per_block(2, 8, 3), 2);
+
+        assert_eq!(get_elements_per_block(0, 9, 3), 3);
+        assert_eq!(get_elements_per_block(1, 9, 3), 3);
+        assert_eq!(get_elements_per_block(2, 9, 3), 3);
+
+        assert_eq!(get_elements_per_block(0, 10, 3), 4);
+        assert_eq!(get_elements_per_block(1, 10, 3), 3);
+        assert_eq!(get_elements_per_block(2, 10, 3), 3);
+    }
+
+    #[test]
     fn test_apply_reduced_capacity() {
         let mut data = vec2d![[1, 2], [1, 2], [1, 2]];
         apply_reduced_capacity(&mut data, 2);
@@ -560,7 +589,7 @@ mod test {
         apply_reduced_capacity(&mut data, 2);
         assert_eq!(
             data,
-            vec2d![[1], [2, 3], [1], [2, 3], [1], [2, 3]],
+            vec2d![[1, 2], [3], [1, 2], [3], [1, 2], [3]],
         );
         let mut data = vec2d![[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]];
         apply_reduced_capacity(&mut data, 2);
@@ -575,4 +604,47 @@ mod test {
             vec2d![[1, 2], [3, 4], [5], [1, 2], [3, 4], [5], [1, 2], [3, 4], [5]],
         );
     }
+
+    #[test]
+    fn test_apply_reduced_capacity_favor_equal_splits() {
+        let mut data = vec2d![[1, 2, 3, 4, 5]];
+        apply_reduced_capacity(&mut data, 4);
+        assert_eq!(
+            data,
+            vec2d![[1, 2, 3], [4, 5]],
+        );
+        let mut data = vec2d![[1, 2, 3, 4, 5, 6, 7, 8, 9]];
+        apply_reduced_capacity(&mut data, 4);
+        assert_eq!(
+            data,
+            vec2d![[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        );
+    }
+
+    #[test]
+    fn test_apply_reduced_capacity_smaller_blocks_are_kept() {
+        let mut data = vec2d![[1, 2, 3, 4], [1], [1, 2], [1, 2, 3], [1, 2, 3, 4]];
+        apply_reduced_capacity(&mut data, 3);
+        assert_eq!(
+            data,
+            vec2d![[1, 2], [3, 4], [1], [1, 2], [1, 2, 3], [1, 2], [3, 4]]
+        );
+    }
+
+    #[test]
+    fn test_apply_reduced_capacity_multi_split() {
+        let mut data = vec2d![[1, 2, 3, 4, 5, 6]];
+        apply_reduced_capacity(&mut data, 2);
+        assert_eq!(
+            data,
+            vec2d![[1, 2], [3, 4], [5, 6]],
+        );
+        let mut data = vec2d![[1, 2, 3, 4, 5, 6, 7]];
+        apply_reduced_capacity(&mut data, 3);
+        assert_eq!(
+            data,
+            vec2d![[1, 2, 3], [4, 5], [6, 7]],
+        );
+    }
+
 }
