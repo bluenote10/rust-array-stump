@@ -50,6 +50,7 @@ where
 pub enum BenchmarkMode {
     Insert { measure_every: usize },
     Remove { measure_every: usize },
+    Find { measure_every: usize },
 }
 
 impl std::fmt::Display for BenchmarkMode {
@@ -57,25 +58,27 @@ impl std::fmt::Display for BenchmarkMode {
         let name = match self {
             BenchmarkMode::Insert{ .. } => "insert",
             BenchmarkMode::Remove{ .. } => "remove",
+            BenchmarkMode::Find{ .. } => "find",
         };
         write!(f, "{}", name)
     }
 }
 
-fn run_generic_benchmark<T, F1, F2, F3, F4>(
+fn run_generic_benchmark<T, Init, Insert, Remove, GetLen, Find>(
     mode: BenchmarkMode,
     values: &[f64],
-    init: F1,
-    insert: F2,
-    remove: F3,
-    get_len: F4,
+    init: Init,
+    insert: Insert,
+    remove: Remove,
+    get_len: GetLen,
+    find: Find,
 ) -> Vec<(usize, f64)>
 where
-    F1: Fn() -> T,
-    F2: Fn(&mut T, f64) -> bool,
-    F3: Fn(&mut T, f64) -> bool,
-    F4: Fn(&T) -> usize,
-
+    Init: Fn() -> T,
+    Insert: Fn(&mut T, f64) -> bool,
+    Remove: Fn(&mut T, f64) -> bool,
+    GetLen: Fn(&T) -> usize,
+    Find: Fn(&T, f64) -> bool,
 {
     let mut set = init();
     let mut elapsed_times = Vec::with_capacity(values.len());
@@ -115,6 +118,26 @@ where
             }
             assert_eq!(get_len(&set), 0);
         }
+        BenchmarkMode::Find{ measure_every } => {
+            let mut total_elapsed = 0.0;
+            for (i, x) in values.iter().enumerate() {
+                insert(&mut set, *x);
+
+                let len = i + 1;
+                if len % measure_every == 0 {
+                    let start = Instant::now();
+
+                    let last_values_shuffled = helpers::shuffle_clone(&values[len - measure_every .. len]);
+                    for x in last_values_shuffled {
+                        assert!(find(&set, x));
+                    }
+
+                    total_elapsed += start.elapsed().as_secs_f64();
+                    elapsed_times.push((len, total_elapsed));
+                }
+            }
+            assert_eq!(get_len(&set), values.len());
+        }
     }
 
     elapsed_times
@@ -140,6 +163,7 @@ impl AllBenches {
                 |set, x| { set.insert(x) },
                 |set, x| { set.remove(&x) },
                 |set| set.len(),
+                |set, x| set.find(&x).is_some(),
             )
         };
         let bench_splay_tree = |mode: BenchmarkMode, values: &[f64]| {
@@ -150,6 +174,7 @@ impl AllBenches {
                 |set, x| { set.insert(x) },
                 |set, x| { set.remove(&x) },
                 |set| set.len(),
+                |set, x| set.find(&x).is_some(),
             )
         };
         let bench_b_tree = |mode: BenchmarkMode, values: &[f64]| {
@@ -160,6 +185,7 @@ impl AllBenches {
                 |set, x| { set.insert(FloatWrapper(x)) },
                 |set, x| { set.remove(&FloatWrapper(x)) },
                 |set| set.len(),
+                |set, x| set.contains(&FloatWrapper(x)),
             )
         };
         let bench_slot_array = |mode: BenchmarkMode, values: &[f64]| {
@@ -170,6 +196,7 @@ impl AllBenches {
                 |set, x| { set.insert(x) },
                 |set, x| { set.remove(&x) },
                 |set| set.len(),
+                |_set, _x| unimplemented!(),
             )
         };
         let bench_plain_array = |mode: BenchmarkMode, values: &[f64]| {
@@ -180,6 +207,7 @@ impl AllBenches {
                 |set, x| { set.insert(x) },
                 |set, x| { set.remove(&x) },
                 |set| set.len(),
+                |_set, _x| unimplemented!(),
             )
         };
         AllBenches {

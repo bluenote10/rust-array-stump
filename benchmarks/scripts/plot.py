@@ -11,6 +11,9 @@ from itertools import cycle
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rc
+rc('font', **{'family': 'serif', 'serif': ['Ubuntu']})
+rc('font', **{'monospace': ['Ubuntu Mono']})
 
 
 def parse_args():
@@ -94,7 +97,7 @@ def main():
     bias_free_plotter1 = ZBiasFreePlotter()
     bias_free_plotter2 = ZBiasFreePlotter()
 
-    fig.text(0.77, 0.93, "Total times [ms]", fontsize=9, family="monospace", weight="bold")
+    fig.text(0.77, 0.93, "Total times [ms]", fontsize=9, weight="bold")
     y_text = 0.9
 
     for i, entry in enumerate(data):
@@ -110,9 +113,9 @@ def main():
 
             mean = stats[name].mean() * 1000
             std = stats[name].std() * 1000
-            fig.text(0.77, y_text, name, fontsize=9, family="monospace")
-            fig.text(0.87, y_text, "{:8.3f}".format(mean), fontsize=9, family="monospace")
-            fig.text(0.93, y_text, "± {:6.3f}".format(std), fontsize=9, family="monospace")
+            fig.text(0.77, y_text, name, fontsize=9)
+            fig.text(0.87, y_text, "{:8.3f}".format(mean), fontsize=9)
+            fig.text(0.93, y_text, "± {:6.3f}".format(std), fontsize=9)
             y_text -= 0.03
         else:
             label = None
@@ -140,8 +143,9 @@ def main():
     bias_free_plotter2.draw_plots()
 
     axes[0].legend(loc="best", prop={'size': 9})
-    axes[0].grid(color="#DDDDDD")
-    axes[1].grid(color="#DDDDDD")
+    for ax in axes:
+        ax.grid(color="#DDDDDD")
+        ax.set_facecolor('#FCFEFF')
 
     axes[0].set_title("Total time elapsed", fontsize=10)
     axes[1].set_title("Delta times", fontsize=10)
