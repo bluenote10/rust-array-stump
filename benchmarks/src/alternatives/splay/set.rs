@@ -61,6 +61,22 @@ where
     pub fn max(&self) -> Option<&T> {
         self.tree.max()
     }
+
+    pub fn traverse<F>(&self, mut traverse: F) where F: FnMut(&T) {
+        self.tree.traverse(&mut |k, _| traverse(k));
+    }
+}
+
+impl<T, C> SplaySet<T, C>
+where
+    C: Fn(&T, &T) -> Ordering,
+    T: Clone,
+{
+    pub fn collect(&self) -> Vec<T> {
+        let mut result = Vec::with_capacity(self.len());
+        self.traverse(|x| result.push(x.clone()));
+        result
+    }
 }
 
 impl<T, C> IntoIterator for SplaySet<T, C>

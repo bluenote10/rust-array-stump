@@ -169,3 +169,12 @@ pub fn shuffle<T>(v: &mut Vec<T>) -> &mut Vec<T>
     v.shuffle(&mut rng);
     v
 }
+
+pub fn shuffle_clone<T>(v: &[T]) -> Vec<T>
+where
+    T: Clone,
+{
+    let mut v = v.to_vec();
+    shuffle(&mut v);
+    v
+}

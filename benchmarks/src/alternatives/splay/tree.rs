@@ -258,6 +258,22 @@ where
     fn root_ref(&self) -> &Option<Box<Node<K, V>>> {
         unsafe { &*self.root.get() }
     }
+
+    pub fn traverse<F>(&self, cb: &mut F) where F: FnMut(&K, &V) {
+        if let Some(node) = self.root_ref() {
+            traverse(node, cb);
+        }
+    }
+}
+
+fn traverse<K, V, F>(node: &Box<Node<K, V>>, cb: &mut F) where F: FnMut(&K, &V) {
+    if let Some(ref left) = node.left {
+        traverse(&left, cb);
+    }
+    cb(&node.key, &node.value);
+    if let Some(ref right) = node.right {
+        traverse(&right, cb);
+    }
 }
 
 impl<'a, K, V, C> Index<&'a K> for SplayTree<K, V, C>
