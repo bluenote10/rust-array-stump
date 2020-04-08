@@ -64,6 +64,24 @@ impl std::fmt::Display for BenchmarkMode {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum GeneratorMode {
+    Avg,
+    Asc,
+    Dsc,
+}
+
+impl std::fmt::Display for GeneratorMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let name = match self {
+            GeneratorMode::Avg => "avg",
+            GeneratorMode::Asc => "asc",
+            GeneratorMode::Dsc => "dsc",
+        };
+        write!(f, "{}", name)
+    }
+}
+
 fn run_generic_benchmark<T, Init, Insert, Remove, GetLen, Find>(
     mode: BenchmarkMode,
     values: &[f64],
@@ -81,7 +99,7 @@ where
     Find: Fn(&T, f64) -> bool,
 {
     let mut set = init();
-    let mut elapsed_times = Vec::with_capacity(values.len());
+    let mut elapsed_times = Vec::with_capacity(values.len()); // TODO: / measure_every
 
     match mode {
         BenchmarkMode::Insert{ measure_every } => {
@@ -265,7 +283,7 @@ fn construct_benchmark_tasks(all_benches: &AllBenches, run: i32, all_combatants:
 }
 
 
-pub fn run_benchmarks(mode: BenchmarkMode, n: usize, num_runs: i32, all_combatants: bool) {
+pub fn run_benchmarks(mode: BenchmarkMode, gen_mode: GeneratorMode, n: usize, num_runs: i32, all_combatants: bool) {
     if cfg!(debug_assertions) {
         println!("WARNING: Debug assertions are enabled. Benchmarking should be done in `--release`.");
     }
@@ -275,7 +293,11 @@ pub fn run_benchmarks(mode: BenchmarkMode, n: usize, num_runs: i32, all_combatan
     for run in 0..=num_runs {
         let benchmark_tasks = construct_benchmark_tasks(&all_benches, run, all_combatants);
 
-        let values = helpers::gen_rand_values(n);
+        let values = match gen_mode {
+            GeneratorMode::Avg => helpers::gen_rand_values(n),
+            GeneratorMode::Asc => (0 .. n).map(|x| x as f64 / n as f64).collect(),
+            GeneratorMode::Dsc => (0 .. n).map(|x| x as f64 / n as f64).rev().collect(),
+        };
         assert_eq!(values.len(), n);
 
         for benchmark_task in benchmark_tasks {
@@ -290,7 +312,7 @@ pub fn run_benchmarks(mode: BenchmarkMode, n: usize, num_runs: i32, all_combatan
                 helpers::export_elapsed_times(
                     &benchmark_task.name,
                     benchmark_task.run,
-                    &format!("results/{}_avg_{}_{}.json", mode, benchmark_task.name, benchmark_task.run),
+                    &format!("results/{}_{}_{}_{}.json", mode, gen_mode, benchmark_task.name, benchmark_task.run),
                     &iters,
                     &times,
                 );
