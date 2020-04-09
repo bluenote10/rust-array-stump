@@ -10,6 +10,7 @@ edition = "2018"
 
 array_stump = { path = "../lib", features = [] }
 
+clap = "2.3.3"
 rand = "0.7.3"
 pretty_assertions = "0.6"
 serde_json = { version = "1.0.44", features = ["arbitrary_precision"] }

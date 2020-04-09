@@ -47,10 +47,18 @@ where
 */
 
 #[derive(Clone, Copy)]
+pub struct BenchmarkParams {
+    pub n: usize,
+    pub measure_every: usize,
+    pub num_runs: i32,
+    pub all_combatants: bool
+}
+
+#[derive(Clone, Copy)]
 pub enum BenchmarkMode {
-    Insert { measure_every: usize },
-    Remove { measure_every: usize },
-    Find { measure_every: usize },
+    Insert,
+    Remove,
+    Find,
 }
 
 impl std::fmt::Display for BenchmarkMode {
@@ -84,6 +92,7 @@ impl std::fmt::Display for GeneratorMode {
 
 fn run_generic_benchmark<T, Init, Insert, Remove, GetLen, Find>(
     mode: BenchmarkMode,
+    params: BenchmarkParams,
     values: &[f64],
     init: Init,
     insert: Insert,
@@ -99,22 +108,22 @@ where
     Find: Fn(&T, f64) -> bool,
 {
     let mut set = init();
-    let mut elapsed_times = Vec::with_capacity(values.len()); // TODO: / measure_every
+    let mut elapsed_times = Vec::with_capacity(values.len() / params.measure_every);
 
     match mode {
-        BenchmarkMode::Insert{ measure_every } => {
+        BenchmarkMode::Insert => {
             let start = Instant::now();
             for (i, x) in values.iter().enumerate() {
                 insert(&mut set, *x);
 
                 let len = i + 1;
-                if len % measure_every == 0 {
+                if len % params.measure_every == 0 {
                     elapsed_times.push((len, start.elapsed().as_secs_f64()));
                 }
             }
             assert_eq!(get_len(&set), values.len());
         }
-        BenchmarkMode::Remove{ measure_every } => {
+        BenchmarkMode::Remove => {
             // Insert
             for x in values {
                 insert(&mut set, *x);
@@ -130,22 +139,22 @@ where
                 remove(&mut set, *x);
 
                 let len = i + 1;
-                if len % measure_every == 0 {
+                if len % params.measure_every == 0 {
                     elapsed_times.push((len, start.elapsed().as_secs_f64()));
                 }
             }
             assert_eq!(get_len(&set), 0);
         }
-        BenchmarkMode::Find{ measure_every } => {
+        BenchmarkMode::Find => {
             let mut total_elapsed = 0.0;
             for (i, x) in values.iter().enumerate() {
                 insert(&mut set, *x);
 
                 let len = i + 1;
-                if len % measure_every == 0 {
+                if len % params.measure_every == 0 {
                     let start = Instant::now();
 
-                    let last_values_shuffled = helpers::shuffle_clone(&values[len - measure_every .. len]);
+                    let last_values_shuffled = helpers::shuffle_clone(&values[len - params.measure_every .. len]);
                     for x in last_values_shuffled {
                         assert!(find(&set, x));
                     }
@@ -161,7 +170,7 @@ where
     elapsed_times
 }
 
-type BenchFunc = Rc<dyn Fn(BenchmarkMode, &[f64]) -> Vec<(usize, f64)>>;
+type BenchFunc = Rc<dyn Fn(BenchmarkMode, BenchmarkParams, &[f64]) -> Vec<(usize, f64)>>;
 
 struct AllBenches {
     bench_array_stump: BenchFunc,
@@ -173,9 +182,10 @@ struct AllBenches {
 
 impl AllBenches {
     fn new() -> Self {
-        let bench_array_stump = |mode: BenchmarkMode, values: &[f64]| {
+        let bench_array_stump = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
             run_generic_benchmark(
                 mode,
+                params,
                 &values,
                 || ArrayStump::new(cmp_array_stump, 512),
                 |set, x| { set.insert(x) },
@@ -184,9 +194,10 @@ impl AllBenches {
                 |set, x| set.find(&x).is_some(),
             )
         };
-        let bench_splay_tree = |mode: BenchmarkMode, values: &[f64]| {
+        let bench_splay_tree = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
             run_generic_benchmark(
                 mode,
+                params,
                 &values,
                 || SplaySet::new(cmp_splay_tree),
                 |set, x| { set.insert(x) },
@@ -195,9 +206,10 @@ impl AllBenches {
                 |set, x| set.find(&x).is_some(),
             )
         };
-        let bench_b_tree = |mode: BenchmarkMode, values: &[f64]| {
+        let bench_b_tree = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
             run_generic_benchmark(
                 mode,
+                params,
                 &values,
                 || BTreeSet::new(),
                 |set, x| { set.insert(FloatWrapper(x)) },
@@ -206,9 +218,10 @@ impl AllBenches {
                 |set, x| set.contains(&FloatWrapper(x)),
             )
         };
-        let bench_slot_array = |mode: BenchmarkMode, values: &[f64]| {
+        let bench_slot_array = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
             run_generic_benchmark(
                 mode,
+                params,
                 &values,
                 || SlotArray::new(cmp_slot_array, 20, 4),
                 |set, x| { set.insert(x) },
@@ -217,9 +230,10 @@ impl AllBenches {
                 |_set, _x| unimplemented!(),
             )
         };
-        let bench_plain_array = |mode: BenchmarkMode, values: &[f64]| {
+        let bench_plain_array = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
             run_generic_benchmark(
                 mode,
+                params,
                 &values,
                 || PlainArray::new(cmp_plain_array, 1024),
                 |set, x| { set.insert(x) },
@@ -283,15 +297,17 @@ fn construct_benchmark_tasks(all_benches: &AllBenches, run: i32, all_combatants:
 }
 
 
-pub fn run_benchmarks(mode: BenchmarkMode, gen_mode: GeneratorMode, n: usize, num_runs: i32, all_combatants: bool) {
+pub fn run_benchmarks(mode: BenchmarkMode, params: BenchmarkParams, gen_mode: GeneratorMode) {
     if cfg!(debug_assertions) {
         println!("WARNING: Debug assertions are enabled. Benchmarking should be done in `--release`.");
     }
+    println!("Running benchmark '{}' with generator mode '{}'", mode, gen_mode);
+    let n = params.n;
 
     let all_benches = AllBenches::new();
 
-    for run in 0..=num_runs {
-        let benchmark_tasks = construct_benchmark_tasks(&all_benches, run, all_combatants);
+    for run in 0..=params.num_runs {
+        let benchmark_tasks = construct_benchmark_tasks(&all_benches, run, params.all_combatants);
 
         let values = match gen_mode {
             GeneratorMode::Avg => helpers::gen_rand_values(n),
@@ -303,7 +319,7 @@ pub fn run_benchmarks(mode: BenchmarkMode, gen_mode: GeneratorMode, n: usize, nu
         for benchmark_task in benchmark_tasks {
             println!("Running benchmark task: {} / {}", benchmark_task.name, benchmark_task.run);
 
-            let measurements = (benchmark_task.func)(mode, &values);
+            let measurements = (benchmark_task.func)(mode, params, &values);
 
             // Use zero-th iteration for warm up
             if run > 0 {
@@ -326,5 +342,5 @@ pub fn run_benchmarks(mode: BenchmarkMode, gen_mode: GeneratorMode, n: usize, nu
     println!("Num calls slot array:  {:12}", get_num_calls_slot_array());
     println!("Num calls plain array: {:12}", get_num_calls_plain_array());
 
-    helpers::call_plots(&mode.to_string());
+    helpers::call_plots(&mode.to_string(), &gen_mode.to_string());
 }

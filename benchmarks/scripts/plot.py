@@ -19,8 +19,12 @@ rc('font', **{'monospace': ['Ubuntu Mono']})
 def parse_args():
     parser = argparse.ArgumentParser("Plot tool")
     parser.add_argument(
-        "-p", "--prefix",
-        help="Prefix for benchmark file selection"
+        "-b", "--bench-mode",
+        help="The 'benchmark mode' part of the file prefix"
+    )
+    parser.add_argument(
+        "-g", "--gen-mode",
+        help="The 'generator mode' part of the file prefix"
     )
     args = parser.parse_args()
     return args
@@ -77,9 +81,10 @@ class ZBiasFreePlotter(object):
 
 def main():
     args = parse_args()
-    prefix = args.prefix
+    bench_mode = args.bench_mode
+    gen_mode = args.gen_mode
 
-    files = glob.glob("results/{}_avg_*.json".format(prefix))
+    files = glob.glob("results/{}_{}_*.json".format(bench_mode, gen_mode))
 
     data = [
         json.load(open(f))

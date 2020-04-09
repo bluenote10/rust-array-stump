@@ -82,7 +82,7 @@ pub fn export_elapsed_times(name: &str, run: i32, filename: &str, iters: &[usize
 }
 
 
-pub fn call_plots(prefix: &str) {
+pub fn call_plots(benchmark_mode: &str, generator_mode: &str) {
     let script_path = Path::new(file!()).to_path_buf()
         .canonicalize().unwrap()
         .parent().unwrap().to_path_buf() // -> /src
@@ -90,8 +90,10 @@ pub fn call_plots(prefix: &str) {
         .join("scripts")
         .join("plot.py");
     Command::new(script_path.as_os_str())
-        .arg("-p")
-        .arg(prefix)
+        .arg("-b")
+        .arg(benchmark_mode)
+        .arg("-g")
+        .arg(generator_mode)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .spawn()
