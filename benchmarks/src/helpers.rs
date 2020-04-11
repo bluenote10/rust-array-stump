@@ -64,11 +64,25 @@ impl Ord for FloatWrapper {
 }
 
 
-pub fn export_elapsed_times(name: &str, run: i32, filename: &str, iters: &[usize], times: &[f64]) {
+pub fn export_elapsed_times(
+    name: &str,
+    run: i32,
+    bench_mode: &str,
+    gen_mode: &str,
+    n: usize,
+    measure_every: usize,
+    filename: &str,
+    iters: &[usize],
+    times: &[f64],
+) {
 
     let json_data = json!({
         "name": name,
         "run": run,
+        "bench_mode": bench_mode,
+        "gen_mode": gen_mode,
+        "n": n,
+        "measure_every": measure_every,
         "iters": iters,
         "times": times,
     });

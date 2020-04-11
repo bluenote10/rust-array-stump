@@ -328,6 +328,10 @@ pub fn run_benchmarks(mode: BenchmarkMode, params: BenchmarkParams, gen_mode: Ge
                 helpers::export_elapsed_times(
                     &benchmark_task.name,
                     benchmark_task.run,
+                    &mode.to_string(),
+                    &gen_mode.to_string(),
+                    params.n,
+                    params.measure_every,
                     &format!("results/{}_{}_{}_{}.json", mode, gen_mode, benchmark_task.name, benchmark_task.run),
                     &iters,
                     &times,
