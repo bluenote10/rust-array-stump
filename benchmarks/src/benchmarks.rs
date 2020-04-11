@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use super::alternatives::splay::SplaySet;
 use super::alternatives::slot_array::SlotArray;
 use super::alternatives::plain_array::PlainArray;
+use skiplist::ordered_skiplist::OrderedSkipList;
 
 use std::rc::Rc;
 use std::time::Instant;
@@ -17,6 +18,7 @@ create_cmp!(cmp_array_stump, get_num_calls_array_stump, NUM_CALLS_ARRAY_STUMP);
 create_cmp!(cmp_splay_tree, get_num_calls_splay_tree, NUM_CALLS_SPLAY_TREE);
 create_cmp!(cmp_slot_array, get_num_calls_slot_array, NUM_CALLS_SLOT_ARRAY);
 create_cmp!(cmp_plain_array, get_num_calls_plain_array, NUM_CALLS_PLAIN_ARRAY);
+create_cmp!(cmp_skip_list, get_num_calls_skip_list, NUM_CALLS_SKIP_LIST);
 
 
 #[derive(Clone, Copy)]
@@ -154,6 +156,7 @@ struct AllBenches {
     bench_array_stump: BenchFunc,
     bench_splay_tree: BenchFunc,
     bench_b_tree: BenchFunc,
+    bench_skiplist: BenchFunc,
     bench_slot_array: BenchFunc,
     bench_plain_array: BenchFunc,
 }
@@ -196,6 +199,22 @@ impl AllBenches {
                 |set, x| set.contains(&FloatWrapper(x)),
             )
         };
+        let bench_skiplist = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
+            run_generic_benchmark(
+                mode,
+                params,
+                &values,
+                || {
+                    let mut skiplist = OrderedSkipList::<f64>::new();
+                    unsafe { skiplist.sort_by(cmp_skip_list); }
+                    skiplist
+                },
+                |set, x| { set.insert(x); true },
+                |set, x| { set.remove(&x).is_some() },
+                |set| set.len(),
+                |set, x| set.contains(&x),
+            )
+        };
         let bench_slot_array = |mode: BenchmarkMode, params: BenchmarkParams, values: &[f64]| {
             run_generic_benchmark(
                 mode,
@@ -224,6 +243,7 @@ impl AllBenches {
             bench_array_stump: Rc::new(bench_array_stump),
             bench_splay_tree: Rc::new(bench_splay_tree),
             bench_b_tree: Rc::new(bench_b_tree),
+            bench_skiplist: Rc::new(bench_skiplist),
             bench_slot_array: Rc::new(bench_slot_array),
             bench_plain_array: Rc::new(bench_plain_array),
         }
@@ -254,6 +274,11 @@ fn construct_benchmark_tasks(all_benches: &AllBenches, run: i32, all_combatants:
             run,
             name: "BTree".to_string(),
             func: all_benches.bench_b_tree.clone(),
+        },
+        BenchmarkTask {
+            run,
+            name: "SkipList".to_string(),
+            func: all_benches.bench_skiplist.clone(),
         },
     ];
     if all_combatants {
@@ -326,6 +351,7 @@ pub fn run_benchmarks(mode: BenchmarkMode, params: BenchmarkParams, gen_mode: Ge
     println!("Num calls array stump: {:12}", get_num_calls_array_stump());
     println!("Num calls splay tree:  {:12}", get_num_calls_splay_tree());
     println!("Num calls B tree:      {:12}", get_num_calls_b_tree());
+    println!("Num calls skip list    {:12}", get_num_calls_skip_list());
     println!("Num calls slot array:  {:12}", get_num_calls_slot_array());
     println!("Num calls plain array: {:12}", get_num_calls_plain_array());
 
