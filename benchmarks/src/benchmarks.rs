@@ -18,33 +18,6 @@ create_cmp!(cmp_splay_tree, get_num_calls_splay_tree, NUM_CALLS_SPLAY_TREE);
 create_cmp!(cmp_slot_array, get_num_calls_slot_array, NUM_CALLS_SLOT_ARRAY);
 create_cmp!(cmp_plain_array, get_num_calls_plain_array, NUM_CALLS_PLAIN_ARRAY);
 
-/*
-TODO: Check if it is possible to make the following work somehow:
-
-type Compare = Fn(&f64, &f64) -> std::cmp::Ordering;
-
-trait GenericBenchmark<T> {
-    type T;
-    fn init() -> T;
-    fn insert(t: T) -> bool;
-}
-
-struct ArrayStumpBenchmark;
-
-impl<C> GenericBenchmark<ArrayStump<f64, C>> for ArrayStumpBenchmark
-where
-    C: Fn(&f64, &f64) -> std::cmp::Ordering
-{
-    type T = ArrayStump<f64, C>;
-
-    fn init() -> Self::T {
-        ArrayStump::new(cmp_array_tree, 512)
-    }
-    fn insert(t: &mut Self::T) -> bool {
-        true
-    }
-}
-*/
 
 #[derive(Clone, Copy)]
 pub struct BenchmarkParams {
@@ -58,7 +31,7 @@ pub struct BenchmarkParams {
 pub enum BenchmarkMode {
     Insert,
     Remove,
-    Find,
+    Find { recent: bool },
 }
 
 impl std::fmt::Display for BenchmarkMode {
@@ -66,7 +39,7 @@ impl std::fmt::Display for BenchmarkMode {
         let name = match self {
             BenchmarkMode::Insert{ .. } => "insert",
             BenchmarkMode::Remove{ .. } => "remove",
-            BenchmarkMode::Find{ .. } => "find",
+            BenchmarkMode::Find{ recent } => if *recent { "find_recent" } else { "find_rand" },
         };
         write!(f, "{}", name)
     }
@@ -145,20 +118,25 @@ where
             }
             assert_eq!(get_len(&set), 0);
         }
-        BenchmarkMode::Find => {
+        BenchmarkMode::Find{ recent } => {
             let mut total_elapsed = 0.0;
             for (i, x) in values.iter().enumerate() {
                 insert(&mut set, *x);
 
                 let len = i + 1;
                 if len % params.measure_every == 0 {
-                    let start = Instant::now();
 
-                    let last_values_shuffled = helpers::shuffle_clone(&values[len - params.measure_every .. len]);
-                    for x in last_values_shuffled {
+                    let search_values_shuffled = if recent {
+                        helpers::shuffle_clone(&values[len - params.measure_every .. len])
+                    } else {
+                        helpers::sample_clone(&values[..len], params.measure_every)
+                    };
+                    assert_eq!(search_values_shuffled.len(), params.measure_every);
+
+                    let start = Instant::now();
+                    for x in search_values_shuffled {
                         assert!(find(&set, x));
                     }
-
                     total_elapsed += start.elapsed().as_secs_f64();
                     elapsed_times.push((len, total_elapsed));
                 }
@@ -301,7 +279,12 @@ pub fn run_benchmarks(mode: BenchmarkMode, params: BenchmarkParams, gen_mode: Ge
     if cfg!(debug_assertions) {
         println!("WARNING: Debug assertions are enabled. Benchmarking should be done in `--release`.");
     }
-    println!("Running benchmark '{}' with generator mode '{}'", mode, gen_mode);
+    println!("Running benchmark...");
+    println!("    Benchmark mode: {}", mode);
+    println!("    Generator mode: {}", gen_mode);
+    println!("    N: {}", params.n);
+    println!("    Measure every: {}", params.measure_every);
+    println!("    Num runs: {}", params.num_runs);
     let n = params.n;
 
     let all_benches = AllBenches::new();

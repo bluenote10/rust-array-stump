@@ -194,3 +194,12 @@ where
     shuffle(&mut v);
     v
 }
+
+pub fn sample_clone<T>(v: &[T], sample_size: usize) -> Vec<T>
+where
+    T: Clone,
+{
+    let mut rng = thread_rng();
+    let sample = v.choose_multiple(&mut rng, sample_size).cloned().collect();
+    sample
+}

@@ -11,7 +11,7 @@ fn main() {
                  .long("bench-mode")
                  .short("b")
                  .default_value("insert")
-                 .possible_values(&["insert", "remove", "find"])
+                 .possible_values(&["insert", "remove", "find_rand", "find_recent"])
                  .help("Benchmark mode"))
         .arg(Arg::with_name("gen-mode")
                  .long("gen-mode")
@@ -27,7 +27,8 @@ fn main() {
     let bench_mode = match bench_mode.as_ref() {
         "insert" => BenchmarkMode::Insert,
         "remove" => BenchmarkMode::Remove,
-        "find" => BenchmarkMode::Find,
+        "find_rand" => BenchmarkMode::Find{ recent: false },
+        "find_recent" => BenchmarkMode::Find{ recent: true },
         _ => panic!("Illegal benchmark mode"),
     };
     let gen_mode = match gen_mode.as_ref() {
