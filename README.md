@@ -1,8 +1,7 @@
 # rust-array-stump
 
---------------------------
-
 [![Build Status](https://travis-ci.org/bluenote10/rust-array-stump.svg?branch=master)](https://travis-ci.org/bluenote10/rust-array-stump)
+[![License:MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A data structure mixing dynamic array and sorted set semantics.
 
@@ -15,7 +14,7 @@ TODO...
 
 ## Benchmarks
 
-Benchmarks... as always take with a grain of salt. A few general notes:
+Benchmarks... As always take with a grain of salt. A few general notes:
 
 - The benchmarks use `T = f64` as underlying set type.
 
@@ -28,6 +27,8 @@ Benchmarks... as always take with a grain of salt. A few general notes:
 - In general the benchmarks measure the time of micro batches. For instance, in the 'insert' benchmark, the data structures get filled with N = 1 million elements, and the elapsed time is measured every k = 25 elements.
 
 - Several of these runs are performed for statistical stability. This shows as a "bundle" of lines in the plots. As can be seen, results between runs are quite consistent and typically 3 runs were sufficient.
+
+- Benchmark system specs: Intel(R) Core(TM) i5-4670 CPU @ 3.40GHz, 8 GB RAM, Ubuntu 18.04
 
 Comparison data structures:
 
@@ -42,11 +43,21 @@ Comparison data structures:
 
 ### Insert (ascending)
 
+<details>
+    <summary>Plots</summary>
+    
 ![image](results/insert_asc_comparison.png/)
+
+</details>
 
 ### Insert (descending)
 
+<details>
+    <summary>Plots</summary>
+
 ![image](results/insert_dsc_comparison.png/)
+
+</details>
 
 ### Remove (random)
 
@@ -58,6 +69,9 @@ Comparison data structures:
 
 ### Find (recent)
 
+<details>
+    <summary>Plots</summary>
+
 ![image](results/find_recent_avg_comparison.png/)
 
-
+</details>
