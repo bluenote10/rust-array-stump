@@ -10,7 +10,18 @@ A data structure mixing dynamic array and sorted set semantics.
 
 This data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of minimizing wasted space.
 
-TODO...
+## Use cases
+
+rust-array-stump has been developed as potential core data structure for the sweep line algorithm in [rust-geo-booleanop](https://github.com/21re/rust-geo-booleanop). It may be applicable in other cases with similar properties:
+
+- Moderate number of elements -- up to 1 million seems a reasonable range according to the benchmarks.
+- Costly comparison function. Note that the complexity of insert/remove is O(sqrt N) with respect to the number of elements that have to be moved when updating the dynamic arrays. On the other hand, the number of comparison calls is only O(log N) due to employing binary search on each level. The benchmarks indicate that the number of comparison calls by rust-array-stump is often much lower compared to binary trees (probably because they may diverge from being balanced). In scenarios with a costly comparison function the algorithm can tolerate a farily large N until the O(sqrt N) effect of the relatively fast array insert become significant.
+- Need for ranked access or frequent search for next/previous elements. In the sweep line algorithm for instance, every insert/remove is followed by a neighborhood check. With a tree, this comes down to several O(log N) calls per iteration, whereas with rust-array-stump it is an O(sqrt N) plus several O(1) calls.
+
+Some design choices currently optimize for use in rust-geo-booleanop, but they may be lifted if need be:
+
+- Custom compare function instead of using `Ordering` trait: The reason is the rust-geo-booleanop needs to sort sweep events differently in different context (simplified: horizontally for the time domain, vertically for the sweep line domain).
+- Requires `T: Clone`: Using certain `Vec` that require `Clone` seems to have performance benefits.
 
 ## Benchmarks
 
