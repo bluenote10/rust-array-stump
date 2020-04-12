@@ -21,7 +21,7 @@ rust-array-stump has been developed as potential core data structure for the swe
 Some design choices currently optimize for use in rust-geo-booleanop, but they may be lifted if need be:
 
 - Custom compare function instead of using `Ordering` trait: The reason is the rust-geo-booleanop needs to sort sweep events differently in different context (simplified: horizontally for the time domain, vertically for the sweep line domain).
-- Requires `T: Clone`: Using certain `Vec` that require `Clone` seems to have performance benefits.
+- Requires `T: Clone`: Using certain `Vec` operations that require `Clone` seems to have performance benefits.
 
 ## Benchmarks
 
@@ -50,9 +50,21 @@ Comparison data structures:
 
 ### Insert (random)
 
+<details>
+<summary>Description</summary>
+
+This benchmark inserts N = 1 000 000 randomly drawn float elements in batches of k = 25 elements.
+Elapsed time is evaluated after each batch.
+</details>
+
 ![image](results/insert_avg_comparison.png/)
 
 ### Insert (ascending)
+
+<details>
+<summary>Description</summary>
+Same as above, but using ascending floating point numbers.
+</details>
 
 <details>
     <summary>Plots</summary>
@@ -64,6 +76,11 @@ Comparison data structures:
 ### Insert (descending)
 
 <details>
+<summary>Description</summary>
+Same as above, but using descending floating point numbers.
+</details>
+
+<details>
     <summary>Plots</summary>
 
 ![image](results/insert_dsc_comparison.png/)
@@ -72,13 +89,41 @@ Comparison data structures:
 
 ### Remove (random)
 
+<details>
+<summary>Description</summary>
+
+This benchmark first fills N = 1 000 000 randomly drawn float elements into the containers without time measurement.
+It then removes random (predetermined) elements in batches of k = 25.
+Elapsed time is evaluated after each batch.
+</details>
+
 ![image](results/remove_avg_comparison.png/)
 
 ### Find (random)
 
+<details>
+<summary>Description</summary>
+
+This benchmark fills N = 1 000 000 randomly drawn float elements in batches of k = 25.
+The insertion of the batch is not included in time measurement.
+After inserting each batch, it calls find (`set.contains`) on k = 25 random elements that are known to exist in the set (elements to be found are predetermined and uniformly distributed).
+Elapsed time only measures the time of finding the k = 25 elements.
+</details>
+
 ![image](results/find_rand_avg_comparison.png/)
 
 ### Find (recent)
+
+<details>
+<summary>Description</summary>
+
+This benchmark was intended to highlight the benefit of splay trees -- finding recently added values.
+
+This benchmark fills N = 1 000 000 randomly drawn float elements in batches of k = 25.
+The insertion of the batch is not included in time measurement.
+After inserting each batch, it calls find (`set.contains`) on the elements k = 25 elements that have just been inserted into the set (find order is randomized, i.e., the k = 25 insert values get shuffeled before the find).
+Elapsed time only measures the time of finding the elements of a batch.
+</details>
 
 <details>
     <summary>Plots</summary>
