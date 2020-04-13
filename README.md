@@ -10,6 +10,7 @@ A data structure mixing dynamic array and sorted set semantics.
 
 This data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of minimizing wasted space.
 
+
 ## Use cases
 
 rust-array-stump has been developed as potential core data structure for the sweep line algorithm in [rust-geo-booleanop](https://github.com/21re/rust-geo-booleanop). It may be applicable in other cases with similar properties:
@@ -22,6 +23,7 @@ Some design choices currently optimize for use in rust-geo-booleanop, but they m
 
 - Custom compare function instead of using `Ordering` trait: The reason is the rust-geo-booleanop needs to sort sweep events differently in different context (simplified: horizontally for the time domain, vertically for the sweep line domain).
 - Requires `T: Clone`: Using certain `Vec` operations that require `Clone` seems to have performance benefits.
+
 
 ## Benchmarks
 
@@ -52,59 +54,72 @@ Comparison data structures:
 
 <details>
 <summary>Description</summary>
+<br>
 
-This benchmark inserts N = 1 000 000 randomly drawn float elements in batches of k = 25 elements.
+- This benchmark inserts N = 1 000 000 randomly drawn float elements in batches of k = 25 elements.
 Elapsed time is evaluated after each batch.
 </details>
 
 ![image](results/insert_avg_comparison.png/)
 
+
 ### Insert (ascending)
 
 <details>
 <summary>Description</summary>
-Same as above, but using ascending floating point numbers.
+<br>
+
+- Same as above, but using ascending floating point numbers.
+- With default settings, the SplayTree crashes with a stack overflow, and requires to manually raise the stack size to make it work.
 </details>
 
 <details>
-    <summary>Plots</summary>
-    
+<summary>Plots</summary>
+
 ![image](results/insert_asc_comparison.png/)
 
 </details>
+
 
 ### Insert (descending)
 
 <details>
 <summary>Description</summary>
-Same as above, but using descending floating point numbers.
+<br>
+
+- Same as above, but using descending floating point numbers.
+- With default settings, the SplayTree crashes with a stack overflow, and requires to manually raise the stack size to make it work.
 </details>
 
 <details>
-    <summary>Plots</summary>
+<summary>Plots</summary>
 
 ![image](results/insert_dsc_comparison.png/)
 
 </details>
 
+
 ### Remove (random)
 
 <details>
 <summary>Description</summary>
+<br>
 
-This benchmark first fills N = 1 000 000 randomly drawn float elements into the containers without time measurement.
+- This benchmark first fills N = 1 000 000 randomly drawn float elements into the containers without time measurement.
 It then removes random (predetermined) elements in batches of k = 25.
 Elapsed time is evaluated after each batch.
 </details>
 
 ![image](results/remove_avg_comparison.png/)
 
+
 ### Find (random)
 
 <details>
 <summary>Description</summary>
+<br>
 
-This benchmark fills N = 1 000 000 randomly drawn float elements in batches of k = 25.
+- This benchmark fills N = 1 000 000 randomly drawn float elements in batches of k = 25.
 The insertion of the batch is not included in time measurement.
 After inserting each batch, it calls find (`set.contains`) on k = 25 random elements that are known to exist in the set (elements to be found are predetermined and uniformly distributed).
 Elapsed time only measures the time of finding the k = 25 elements.
@@ -112,21 +127,22 @@ Elapsed time only measures the time of finding the k = 25 elements.
 
 ![image](results/find_rand_avg_comparison.png/)
 
+
 ### Find (recent)
 
 <details>
 <summary>Description</summary>
+<br>
 
-This benchmark was intended to highlight the benefit of splay trees -- finding recently added values.
-
-This benchmark fills N = 1 000 000 randomly drawn float elements in batches of k = 25.
+- This benchmark fills N = 1 000 000 randomly drawn float elements in batches of k = 25.
 The insertion of the batch is not included in time measurement.
 After inserting each batch, it calls find (`set.contains`) on the elements k = 25 elements that have just been inserted into the set (find order is randomized, i.e., the k = 25 insert values get shuffeled before the find).
 Elapsed time only measures the time of finding the elements of a batch.
+- This benchmark was intended to highlight the benefit of splay trees -- finding recently added values. It indeed shows very good performance in this case.
 </details>
 
 <details>
-    <summary>Plots</summary>
+<summary>Plots</summary>
 
 ![image](results/find_recent_avg_comparison.png/)
 
