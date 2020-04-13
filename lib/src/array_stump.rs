@@ -14,7 +14,8 @@ where
 impl<T, C> ArrayStump<T, C>
 where
     C: Fn(&T, &T) -> Ordering,
-    T: Clone + std::fmt::Debug,
+    T: Clone,
+    T: std::fmt::Debug, // TODO: remove soon
 {
     pub fn new(comparator: C, init_capacity: u16) -> ArrayStump<T, C> {
         let data = Vec::with_capacity(init_capacity as usize);
@@ -140,8 +141,8 @@ where
         if self.data.len() == 0 {
             return None;
         }
+
         // Binary search for block index
-        // println!("\nfind: {:?}", t);
         let (idx_block, equals) = binary_search_by(
             &self.data,
             #[inline] |block| (self.comparator)(&block[0], &t),
@@ -149,7 +150,6 @@ where
         if equals {
             return Some((idx_block, 0));
         }
-        // println!("{} {}", equals, idx_block);
 
         // Convert from "first larger" to "last smaller" index semantics
         let idx_block = if idx_block > 0 {
@@ -168,7 +168,6 @@ where
             &self.data[idx_block],
             #[inline] |x| (self.comparator)(&x, &t),
         );
-        // println!("{} {}", equals, idx_value);
         if equals {
             return Some((idx_block, idx_value));
         }
@@ -193,10 +192,6 @@ where
         let mut data = Vec::with_capacity(self.num_elements);
         self.traverse(|_, x| data.push(x.clone()));
         data
-    }
-
-    pub fn debug(&self) {
-        println!("{:?}", self.data);
     }
 
     fn new_block(&self, t: T) -> Vec<T> {
@@ -224,6 +219,10 @@ where
 
     pub fn get_num_blocks(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn debug(&self) {
+        println!("{:?}", self.data);
     }
 }
 
@@ -316,6 +315,13 @@ mod test {
     use rand::{Rng, SeedableRng};
     use rand::rngs::StdRng;
 
+    macro_rules! vec2d {
+        ($($x:expr),*) => {{
+            let data = [ $(to_vec_i32(&$x)),* ].to_vec();
+            data
+        }}
+    }
+
     fn int_comparator(a: &i32, b: &i32) -> Ordering {
         a.cmp(b)
     }
@@ -372,6 +378,12 @@ mod test {
         } else {
             assert_eq!(data[idx_actual], value);
         }
+    }
+
+    #[test]
+    fn test_binary_search_empty() {
+        let data: Vec::<i32> = vec![];
+        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &0)), (0, false));
     }
 
     #[test]
@@ -545,18 +557,26 @@ mod test {
     }
 
     // ------------------------------------------------------------------------
+    // Array tests -- misc functionality
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_statistics_and_debugging() {
+        let a = new_array!(4, vec2d![[1], [2, 3], [4, 5, 6]]);
+        a.debug();
+        assert_eq!(a.get_leaf_fill_min().unwrap(), 1);
+        assert_eq!(a.get_leaf_fill_max().unwrap(), 3);
+        assert_eq!(a.get_leaf_fill_ratio(), 0.5);
+        assert_eq!(a.get_num_blocks(), 3);
+        assert_eq!(a.get_capacity(), 4);
+    }
+
+    // ------------------------------------------------------------------------
     // Capacity adaptation
     // ------------------------------------------------------------------------
 
     fn to_vec_i32(a: &[i32]) -> Vec<i32> {
         a.to_vec()
-    }
-
-    macro_rules! vec2d {
-        ($($x:expr),*) => {{
-            let data = [ $(to_vec_i32(&$x)),* ].to_vec();
-            data
-        }}
     }
 
     #[test]
