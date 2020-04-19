@@ -13,7 +13,10 @@ A data structure mixing dynamic array and sorted set semantics.
 
 ![Algorithm Visualization](docs/algorithm_visualization.gif)
 
-The data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of inserting/removing at the end.
+Algorithmic notes:
+- The data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of inserting/removing at the end.
+- The `max_leaf_capacity` gets doubled if the size of the top level array exceeds an upper threshold `alpha_1 * max_leaf_capacity`.
+- The `max_leaf_capacity` gets halved if the average leaf fill ratio exceeds a lower threshold `alpha_2`.
 
 
 ## Use cases
@@ -113,6 +116,7 @@ Elapsed time is evaluated after each batch.
 - This benchmark first fills N = 1 000 000 randomly drawn float elements into the containers without time measurement.
 It then removes random (predetermined) elements in batches of k = 25.
 Elapsed time is evaluated after each batch.
+- The elapsed times have been reverted for the purpose of the plot so that the x-axis corresponds to the collection size, allowing for double-log plotting.
 </details>
 
 ![image](results/remove_avg_comparison.png/)

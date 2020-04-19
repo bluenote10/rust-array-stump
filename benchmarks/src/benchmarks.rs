@@ -119,6 +119,19 @@ where
                 }
             }
             assert_eq!(get_len(&set), 0);
+
+            // Note: we reverse the elapsed times so that the reported N corresponds to the collection size.
+            let mut elapsed_times_reversed = Vec::with_capacity(elapsed_times.len());
+            let mut t = 0.0;
+            let mut n = 0;
+            for i in (0 .. elapsed_times.len()).rev() {
+                let delta_t = if i > 0 { elapsed_times[i].1 - elapsed_times[i - 1].1 } else { elapsed_times[0].1 };
+                let delta_n = if i > 0 { elapsed_times[i].0 - elapsed_times[i - 1].0 } else { elapsed_times[0].0 };
+                t += delta_t;
+                n += delta_n;
+                elapsed_times_reversed.push((n, t));
+            }
+            elapsed_times = elapsed_times_reversed;
         }
         BenchmarkMode::Find{ recent } => {
             let mut total_elapsed = 0.0;
