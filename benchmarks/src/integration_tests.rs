@@ -21,7 +21,7 @@ fn insert_and_remove() {
                 let values = gen_rand_values_i32(array_len);
                 // println!("\nInserting: {:?}", values);
 
-                let mut set_a = ArrayStump::new(cmp, cap);
+                let mut set_a = ArrayStump::new_explicit(cmp, cap);
                 let mut set_b = SplaySet::new(cmp);
 
                 for x in &values {

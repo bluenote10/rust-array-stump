@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+// The core data structure representing a two-level sorted stump.
 pub struct ArrayStump<T, C>
 where
     C: Fn(&T, &T) -> Ordering,
@@ -17,7 +18,13 @@ where
     T: Clone,
     T: std::fmt::Debug, // TODO: remove soon
 {
-    pub fn new(comparator: C, init_capacity: u16) -> ArrayStump<T, C> {
+    /// Creates a new `ArrayStump` instance.
+    pub fn new(comparator: C) -> ArrayStump<T, C> {
+        ArrayStump::new_explicit(comparator, 512)
+    }
+
+    /// Creates a new `ArrayStump` instance with explicit control over internal parameters.
+    pub fn new_explicit(comparator: C, init_capacity: u16) -> ArrayStump<T, C> {
         let data = Vec::with_capacity(init_capacity as usize);
         ArrayStump {
             comparator,
@@ -28,10 +35,12 @@ where
         }
     }
 
+    /// Returns the length (i.e., number of elements stored).
     pub fn len(&self) -> usize {
         self.num_elements
     }
 
+    /// Insert a value.
     pub fn insert(&mut self, t: T) -> bool {
         // println!("\nInserting: {:?}", t);
         // println!("{:?}", self.data);
@@ -111,6 +120,7 @@ where
         true
     }
 
+    /// Remove a value.
     pub fn remove(&mut self, t: &T) -> bool {
         // println!("\nRemoving: {:?}", t);
         if self.data.len() == 0 {
@@ -136,6 +146,7 @@ where
         }
     }
 
+    /// Try to find an existing value.
     #[inline]
     pub fn find(&self, t: &T) -> Option<(usize, usize)> {
         if self.data.len() == 0 {
@@ -175,6 +186,7 @@ where
         None
     }
 
+    /// Traverse collection given a callback.
     pub fn traverse<F>(&self, mut f: F)
     where
         F: FnMut(usize, &T),
@@ -188,6 +200,7 @@ where
         }
     }
 
+    /// Collect collection into a vector.
     pub fn collect(&self) -> Vec<T> {
         let mut data = Vec::with_capacity(self.num_elements);
         self.traverse(|_, x| data.push(x.clone()));
@@ -201,33 +214,48 @@ where
         block
     }
 
+    /// Get the average fill ratio of leafs, i.e., a value of 0.5 means that
+    /// leafs are on average half full.
+    ///
+    /// This is an O(1) operation.
     pub fn get_leaf_fill_ratio(&self) -> f64 {
         (self.num_elements as f64) / (self.capacity as f64 * self.data.len() as f64)
     }
 
+    /// Get the minimum number of elements in a leaf.
+    ///
+    /// This requires iterating all blocks, and thus, is an O(sqrt N) operation.
     pub fn get_leaf_fill_min(&self) -> Option<usize> {
         self.data.iter().map(|block| block.len()).min()
     }
 
+    /// Get the maximum number of elements in a leaf.
+    ///
+    /// This requires iterating all blocks, and thus, is an O(sqrt N) operation.
     pub fn get_leaf_fill_max(&self) -> Option<usize> {
         self.data.iter().map(|block| block.len()).max()
     }
 
+    /// Get the current max leaf capacity.
     pub fn get_capacity(&self) -> u16 {
         self.capacity
     }
 
+    /// Get the current number of blocks.
     pub fn get_num_blocks(&self) -> usize {
         self.data.len()
     }
 
+    /// Internal debug helper function.
     pub fn debug(&self) {
         println!("{:?}", self.data);
     }
 }
 
-
-pub fn binary_search_by<T, F>(data: &[T], mut f: F) -> (usize, bool)
+// Note: We are using our own implementation of binary search, because the implementation
+// in the standard library is optimized for fast comparison functions, and requires more
+// comparison function evaluations.
+fn binary_search_by<T, F>(data: &[T], mut f: F) -> (usize, bool)
 where
     F: FnMut(&T) -> Ordering,
     T: std::fmt::Debug,
@@ -242,7 +270,6 @@ where
         let mid = l + (r - l) / 2;
 
         let mid_el = unsafe { &data.get_unchecked(mid) };
-        //let mid_el = &data[mid];
         // println!("{} {} {} {:?}", l, r, mid, mid_el);
 
         let cmp = f(mid_el);
@@ -504,12 +531,12 @@ mod test {
     #[test]
     fn test_array_stump_collect() {
         for cap in vec![2, 3, 4, 5] {
-            let mut a = ArrayStump::new(int_comparator, cap as u16);
+            let mut a = ArrayStump::new_explicit(int_comparator, cap as u16);
             insert_many!(a, [1, 2, 3, 4]);
             assert_eq!(a.collect(), [1, 2, 3, 4]);
             assert_eq!(a.collect().len(), a.len());
 
-            let mut a = ArrayStump::new(int_comparator, cap as u16);
+            let mut a = ArrayStump::new_explicit(int_comparator, cap as u16);
             insert_many!(a, [1, 2, 3, 4]);
             assert_eq!(a.collect(), [1, 2, 3, 4]);
             assert_eq!(a.collect().len(), a.len());
@@ -546,7 +573,7 @@ mod test {
 
     #[test]
     fn test_failing() {
-        let mut at = ArrayStump::new(|a: &f64, b: &f64| a.partial_cmp(b).unwrap(), 16);
+        let mut at = ArrayStump::new_explicit(|a: &f64, b: &f64| a.partial_cmp(b).unwrap(), 16);
         let vals = vec![0.6994135560499647, 0.15138991083383901, 0.17989509662598502, 0.22855960374503625, 0.7394173591733456, 0.8606810583068278, 0.025843624735059523, 0.1416162372765526, 0.9789425643425963, 0.6312677864630949, 0.34678659888024466, 0.7876614416763924, 0.6260871506068197, 0.34733559592131624, 0.5722923635764159, 0.14416998787798063, 0.839158671060864, 0.2621428817535354, 0.9334439919690996, 0.016414089291711065, 0.8795903741012259, 0.051958655798298614, 0.8313985552845266, 0.026928982020677505, 0.779969564116276, 0.6437306675337413, 0.03822809941255523, 0.777911020749552, 0.4639770428538855, 0.7039388191038694, 0.31363729764551374, 0.8111651227165783, 0.5174339383176408, 0.49384841003283086, 0.5214549475595969, 0.0823716635367353, 0.7310183483079477, 0.6196297749276181, 0.6226877845880779, 0.8987550167723078, 0.9536731852226494, 0.2719858776118911, 0.837006810218081, 0.7570466272336563, 0.9649096907962248, 0.09547804495341239, 0.26299769639555115, 0.6883529379785718, 0.23545125345269502, 0.5611223421257663, 0.81145380876482, 0.7821846165410649, 0.8385374221326543, 0.2287909449815878, 0.9938012642875733, 0.30515950398348823, 0.021945251189301795, 0.7456118789178752, 0.24917873250483202, 0.19461925257672297, 0.08596890658908873, 0.8208413553993631, 0.2799020116906893, 0.622583855342935, 0.3406868767224045, 0.7125811318179431, 0.8171813899535424, 0.9875530622413784, 0.8124194427320398, 0.27890169087536465, 0.4582999489551358, 0.8170130026270258, 0.1116683852975886, 0.9523649049789342, 0.1626401579175366, 0.7006463636943299, 0.5396656897339597, 0.73824000529768, 0.8975902131523751, 0.3138666758196337, 0.959190654990596, 0.6786382471256971, 0.8807317907186307, 0.9923109213923168, 0.7704353170122445, 0.20331717853087872, 0.9191784945915048, 0.3458975102965529, 0.44567705127366397, 0.08758863415076357, 0.8940937525362007, 0.2046747373689708, 0.1540080303289173, 0.8088614347095653, 0.09821866105193844, 0.050284880746519045, 0.9585396829998039, 0.35100273069739263, 0.8263845327940142, 0.6305932414080216];
         for (i, x) in vals.iter().enumerate() {
             at.insert(*x);

@@ -34,7 +34,7 @@ fn run_fill_statistics() {
         _ => panic!("Invalid generator mode")
     };
 
-    let mut set = ArrayStump::new(cmp_array_tree, 256);
+    let mut set = ArrayStump::new_explicit(cmp_array_tree, 256);
 
     let mut iters = Vec::new();
     let mut times = Vec::new();

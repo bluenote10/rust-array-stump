@@ -168,7 +168,7 @@ impl AllBenches {
                 mode,
                 params,
                 &values,
-                || ArrayStump::new(cmp_array_stump, 512),
+                || ArrayStump::new_explicit(cmp_array_stump, 512),
                 |set, x| { set.insert(x) },
                 |set, x| { set.remove(&x) },
                 |set| set.len(),
