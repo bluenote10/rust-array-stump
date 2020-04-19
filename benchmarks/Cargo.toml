@@ -1,5 +1,5 @@
 [package]
-name = "array_stump_benchmarks"
+name = "array-stump-benchmarks"
 version = "0.1.0"
 authors = ["Fabian Keller <github.100.fkeller@spamgourmet.com>"]
 edition = "2018"
@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 
-array_stump = { path = "../lib", features = [] }
+array-stump = { path = "../lib", features = [] }
 
 clap = "2.3.3"
 rand = "0.7.3"
