@@ -42,8 +42,6 @@ where
 
     /// Insert a value.
     pub fn insert(&mut self, t: T) -> bool {
-        // println!("\nInserting: {:?}", t);
-        // println!("{:?}", self.data);
         if self.data.len() == 0 {
             self.data.push(self.new_block(t));
             self.num_elements += 1;
@@ -65,7 +63,6 @@ where
         } else {
             0
         };
-        // println!("idx_block: {}    block_len: {}", idx_block, self.data[idx_block].len());
 
         // Split block if necessary
         if self.data[idx_block].len() >= self.capacity as usize {
@@ -79,8 +76,6 @@ where
             self.data[idx_block].truncate(tail_from);
             self.data.insert(idx_block + 1, block_tail);
 
-            // println!("block l: {:?}", self.data[idx_block]);
-            // println!("block r: {:?}", self.data[idx_block + 1]);
             // Determine into which of the two split blocks the new value goes.
             let cmp = (self.comparator)(&t, &self.data[idx_block + 1][0]);
             if cmp == Ordering::Equal {
@@ -88,7 +83,6 @@ where
             } else if cmp == Ordering::Greater {
                 idx_block += 1;
             }
-            // println!("idx_block: {}", idx_block);
         }
 
         // Binary search for value index
@@ -99,14 +93,11 @@ where
         if equals {
             return false;
         }
-        // println!("idx_value: {}", idx_value);
 
         // Value insert
         let block_len = self.data[idx_block].len();
         if idx_value < block_len {
-            // println!("block: {:?}", self.data[idx_block]);
             self.data[idx_block].insert(idx_value, t);
-            // println!("block: {:?}", self.data[idx_block]);
         } else {
             self.data[idx_block].push(t);
         }
@@ -122,7 +113,6 @@ where
 
     /// Remove a value.
     pub fn remove(&mut self, t: &T) -> bool {
-        // println!("\nRemoving: {:?}", t);
         if self.data.len() == 0 {
             return false;
         }
@@ -164,15 +154,13 @@ where
 
         // Convert from "first larger" to "last smaller" index semantics
         let idx_block = if idx_block > 0 {
+            // TODO: Probably we can short circuit here, because if the element is smaller
+            // then the first element of the first block, we don't have to do binary search.
+            // Needs tests...
             idx_block - 1
         } else {
             0
         };
-        /*
-        if idx_block == self.data.len() {
-            return None;
-        }
-        */
 
         // Binary search for value index
         let (idx_value, equals) = binary_search_by(
