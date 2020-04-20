@@ -14,7 +14,8 @@ A data structure mixing dynamic array and sorted set semantics.
 ![Algorithm Visualization](docs/algorithm_visualization.gif)
 
 Algorithmic notes:
-- The data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of inserting/removing at the end.
+- In general, the data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of inserting/removing at the end.
+- In a sense, the structure resembles a two-level tree: The outer level ("root") is a dynamic array containing nested dynamic arrays ("leaves"). Hence array stump.
 - The `max_leaf_capacity` gets doubled if the size of the top level array exceeds an upper threshold `alpha_1 * max_leaf_capacity`.
 - The `max_leaf_capacity` gets halved if the average leaf fill ratio exceeds a lower threshold `alpha_2`.
 
