@@ -1,5 +1,6 @@
 # rust-array-stump
 
+[![crates.io](https://img.shields.io/crates/v/array_stump.svg)](https://crates.io/crates/array_stump)
 [![Build Status](https://travis-ci.org/bluenote10/rust-array-stump.svg?branch=master)](https://travis-ci.org/bluenote10/rust-array-stump)
 [![codecov](https://codecov.io/gh/bluenote10/rust-array-stump/branch/master/graph/badge.svg)](https://codecov.io/gh/bluenote10/rust-array-stump)
 [![License:MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
