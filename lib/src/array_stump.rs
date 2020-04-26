@@ -1,6 +1,18 @@
 use std::cmp::Ordering;
 
-// The core data structure representing a two-level sorted stump.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+pub struct Index {
+    outer: usize,
+    inner: usize,
+}
+
+impl Index {
+    pub fn new(outer: usize, inner: usize) -> Index {
+        Index{outer, inner}
+    }
+}
+
+/// The core data structure representing a two-level sorted stump.
 pub struct ArrayStump<T, C>
 where
     C: Fn(&T, &T) -> Ordering,
@@ -117,7 +129,7 @@ where
             return false;
         }
 
-        if let Some((idx_block, idx_value)) = self.find(t) {
+        if let Some(Index{outer: idx_block, inner: idx_value}) = self.find(t) {
             if self.data[idx_block].len() > 1 {
                 self.data[idx_block].remove(idx_value);
             } else {
@@ -138,7 +150,7 @@ where
 
     /// Try to find an existing value.
     #[inline]
-    pub fn find(&self, t: &T) -> Option<(usize, usize)> {
+    pub fn find(&self, t: &T) -> Option<Index> {
         if self.data.len() == 0 {
             return None;
         }
@@ -149,7 +161,7 @@ where
             #[inline] |block| (self.comparator)(&block[0], &t),
         );
         if equals {
-            return Some((idx_block, 0));
+            return Some(Index{outer: idx_block, inner: 0});
         }
 
         // Convert from "first larger" to "last smaller" index semantics
@@ -168,7 +180,7 @@ where
             #[inline] |x| (self.comparator)(&x, &t),
         );
         if equals {
-            return Some((idx_block, idx_value));
+            return Some(Index{outer: idx_block, inner: idx_value});
         }
 
         None
@@ -361,7 +373,7 @@ mod test {
         (data.len(), false)
     }
 
-    fn generate_random_array(rng: &mut StdRng, len: usize) -> (Vec<i32>, Vec<i32>) {
+    pub fn generate_random_array(rng: &mut StdRng, len: usize) -> (Vec<i32>, Vec<i32>) {
         let mut data = Vec::new();
 
         let mut last = 0;
@@ -534,10 +546,10 @@ mod test {
     #[test]
     fn test_find() {
         let a = new_array!(16, vec![vec![2, 4], vec![6], vec![8]]);
-        assert_eq!(a.find(&2), Some((0, 0)));
-        assert_eq!(a.find(&4), Some((0, 1)));
-        assert_eq!(a.find(&6), Some((1, 0)));
-        assert_eq!(a.find(&8), Some((2, 0)));
+        assert_eq!(a.find(&2), Some(Index::new(0, 0)));
+        assert_eq!(a.find(&4), Some(Index::new(0, 1)));
+        assert_eq!(a.find(&6), Some(Index::new(1, 0)));
+        assert_eq!(a.find(&8), Some(Index::new(2, 0)));
         for x in [1, 3, 5, 7, 9].iter() {
             assert_eq!(a.find(x), None);
         }
