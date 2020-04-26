@@ -182,7 +182,7 @@ impl AllBenches {
                 params,
                 &values,
                 || ArrayStump::new_explicit(cmp_array_stump, 512),
-                |set, x| { set.insert(x) },
+                |set, x| { set.insert(x).is_some() },
                 |set, x| { set.remove(&x) },
                 |set| set.len(),
                 |set, x| set.find(&x).is_some(),

@@ -53,11 +53,11 @@ where
     }
 
     /// Insert a value.
-    pub fn insert(&mut self, t: T) -> bool {
+    pub fn insert(&mut self, t: T) -> Option<Index> {
         if self.data.len() == 0 {
             self.data.push(self.new_block(t));
             self.num_elements += 1;
-            return true;
+            return Some(Index::new(0, 0));
         }
 
         // Binary search for block index
@@ -66,7 +66,7 @@ where
             |block| (self.comparator)(&block[0], &t),
         );
         if equals {
-            return false;
+            return None;
         }
 
         // Convert from "first larger" to "last smaller" index semantics
@@ -91,7 +91,7 @@ where
             // Determine into which of the two split blocks the new value goes.
             let cmp = (self.comparator)(&t, &self.data[idx_block + 1][0]);
             if cmp == Ordering::Equal {
-                return false;
+                return None;
             } else if cmp == Ordering::Greater {
                 idx_block += 1;
             }
@@ -103,7 +103,7 @@ where
             |x| (self.comparator)(&x, &t),
         );
         if equals {
-            return false;
+            return None;
         }
 
         // Value insert
@@ -120,7 +120,7 @@ where
             self.capacity *= 2;
         }
 
-        true
+        Some(Index::new(idx_block, idx_value))
     }
 
     /// Remove a value.
@@ -249,6 +249,19 @@ where
     /// Internal debug helper function.
     pub fn debug(&self) {
         println!("{:?}", self.data);
+    }
+}
+
+impl<T, C> std::ops::Index<Index> for ArrayStump<T, C>
+where
+    C: Fn(&T, &T) -> Ordering,
+    T: Clone,
+{
+    type Output = T;
+    /// Access an element via its index. This operation is only valid, if the data has not
+    /// been modified since the index has been obtained.
+    fn index<'a>(&'a self, i: Index) -> &'a T {
+        &self.data[i.outer][i.inner]
     }
 }
 
@@ -525,7 +538,7 @@ mod test {
         // We must make sure that the element at the split index has proper equality check
         let mut a = new_array!(8, vec![vec![5, 7, 11, 17, 19, 22, 29, 30]]);
         let equals = a.insert(19);
-        assert_eq!(equals, false);  // no insertion
+        assert_eq!(equals, None);  // no insertion
     }
 
     #[test]

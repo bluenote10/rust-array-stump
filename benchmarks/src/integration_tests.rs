@@ -41,9 +41,14 @@ fn insert_and_remove() {
                     let res_a = set_a.insert(*x);
                     let res_b = set_b.insert(*x);
                     // println!("{} {} {}", x, res_a, res_b);
-                    assert_eq!(res_a, res_b);
+                    assert_eq!(res_a.is_some(), res_b);
                     assert_eq!(set_a.len(), set_b.len());
                     assert_eq!(set_a.collect(), set_b.collect());
+
+                    // Test for index correctness
+                    if let Some(res_a) = res_a {
+                        assert_eq!(set_a[res_a], *x);
+                    }
                 }
 
                 let values = shuffle_clone(&values);
