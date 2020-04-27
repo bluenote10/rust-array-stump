@@ -95,3 +95,31 @@ fn find() {
         }
     }
 }
+
+#[test]
+fn find_and_remove_by_index() {
+    let repeats = 8;
+    for _ in 0 .. repeats {
+        for array_len in 0 .. 16 {
+            for cap in 2 .. 16 {
+                let values = gen_rand_values_i32(array_len);
+
+                let mut set_a = ArrayStump::new_explicit(cmp, cap);
+                let mut set_b = SplaySet::new(cmp);
+
+                for x in &values {
+                    set_a.insert(*x);
+                    set_b.insert(*x);
+                }
+
+                let values = shuffle_clone(&values);
+                for x in &values {
+                    set_a.find(x).map(|idx| set_a.remove_by_index(idx));
+                    set_b.remove(x);
+                    assert_eq!(set_a.collect(), set_b.collect());
+                }
+
+            }
+        }
+    }
+}
