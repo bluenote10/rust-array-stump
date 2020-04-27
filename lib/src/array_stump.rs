@@ -129,22 +129,30 @@ where
             return false;
         }
 
-        if let Some(Index{outer: idx_block, inner: idx_value}) = self.find(t) {
-            if self.data[idx_block].len() > 1 {
-                self.data[idx_block].remove(idx_value);
-            } else {
-                self.data.remove(idx_block);
-            }
-            self.num_elements -= 1;
-
-            if self.get_leaf_fill_ratio() < 0.1 && self.capacity > 2 {
-                self.capacity /= 2;
-                apply_reduced_capacity(&mut self.data, self.capacity);
-            }
-
+        if let Some(idx) = self.find(t) {
+            self.remove_by_index(idx);
             true
         } else {
             false
+        }
+    }
+
+    /// Remove a value by its index.
+    #[inline]
+    pub fn remove_by_index(&mut self, idx: Index) {
+        let idx_block = idx.outer;
+        let idx_value = idx.inner;
+
+        if self.data[idx_block].len() > 1 {
+            self.data[idx_block].remove(idx_value);
+        } else {
+            self.data.remove(idx_block);
+        }
+        self.num_elements -= 1;
+
+        if self.get_leaf_fill_ratio() < 0.1 && self.capacity > 2 {
+            self.capacity /= 2;
+            apply_reduced_capacity(&mut self.data, self.capacity);
         }
     }
 
