@@ -47,7 +47,7 @@ fn insert_and_remove() {
 
                     // Test for index correctness
                     if let Some(res_a) = res_a {
-                        assert_eq!(set_a[res_a], *x);
+                        assert_eq!(set_a.get_by_index(res_a), x);
                     }
                 }
 

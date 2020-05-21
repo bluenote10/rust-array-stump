@@ -194,6 +194,48 @@ where
         None
     }
 
+    /// Returns the element at a given index.
+    /// Caution: An index that has been obtained before mutating the data structure is an
+    /// invalid index. Calling this function with an invalid index may panic with index
+    /// out of bounds.
+    pub fn get_by_index(&self, idx: Index) -> &T {
+        &self.data[idx.outer][idx.inner]
+    }
+
+    /// Returns the index of the next element if there is one.
+    pub fn next_index(&self, idx: Index) -> Option<Index> {
+        if idx.outer >= self.data.len() {
+            None
+        } else {
+            if idx.inner < self.data[idx.outer].len() - 1 {
+                Some(Index::new(idx.outer, idx.inner + 1))
+            } else {
+                if idx.outer < self.data.len() - 1 {
+                    Some(Index::new(idx.outer + 1, 0))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Returns the index of the previous element if there is one.
+    pub fn prev_index(&self, idx: Index) -> Option<Index> {
+        if idx.outer >= self.data.len() {
+            None
+        } else {
+            if idx.inner > 0 {
+                Some(Index::new(idx.outer, idx.inner - 1))
+            } else {
+                if idx.outer > 0 {
+                    Some(Index::new(idx.outer - 1, self.data[idx.outer - 1].len() - 1))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     /// Traverse collection given a callback.
     pub fn traverse<F>(&self, mut f: F)
     where
@@ -260,6 +302,11 @@ where
     }
 }
 
+// I'm not quite sure if we should support the Index trait, because index semantics
+// are not the most natural operation on tree-like data structures. Maybe it is better
+// to stick with `get_by_index` and `get_by_rank` to be explicit about the two possible
+// semantics that indexing could have.
+#[cfg(feature="indextrait")]
 impl<T, C> std::ops::Index<Index> for ArrayStump<T, C>
 where
     C: Fn(&T, &T) -> Ordering,
@@ -713,6 +760,40 @@ mod test {
             data,
             vec2d![[1, 2, 3], [4, 5], [6, 7]],
         );
+    }
+
+    // ------------------------------------------------------------------------
+    // Index handling
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_get_by_index() {
+        let a = new_array!(2, vec![vec![1], vec![2, 3]]);
+        assert_eq!(*a.get_by_index(Index::new(0, 0)), 1);
+        assert_eq!(*a.get_by_index(Index::new(1, 0)), 2);
+        assert_eq!(*a.get_by_index(Index::new(1, 1)), 3);
+    }
+
+    #[test]
+    fn test_next_index() {
+        let a = new_array!(2, vec2d![[1], [2, 3], [4, 5, 6]]);
+        assert_eq!(a.next_index(Index::new(0, 0)), Some(Index::new(1, 0)));
+        assert_eq!(a.next_index(Index::new(1, 0)), Some(Index::new(1, 1)));
+        assert_eq!(a.next_index(Index::new(1, 1)), Some(Index::new(2, 0)));
+        assert_eq!(a.next_index(Index::new(2, 0)), Some(Index::new(2, 1)));
+        assert_eq!(a.next_index(Index::new(2, 1)), Some(Index::new(2, 2)));
+        assert_eq!(a.next_index(Index::new(2, 2)), None);
+    }
+
+    #[test]
+    fn test_prev_index() {
+        let a = new_array!(2, vec2d![[1], [2, 3], [4, 5, 6]]);
+        assert_eq!(a.prev_index(Index::new(0, 0)), None);
+        assert_eq!(a.prev_index(Index::new(1, 0)), Some(Index::new(0, 0)));
+        assert_eq!(a.prev_index(Index::new(1, 1)), Some(Index::new(1, 0)));
+        assert_eq!(a.prev_index(Index::new(2, 0)), Some(Index::new(1, 1)));
+        assert_eq!(a.prev_index(Index::new(2, 1)), Some(Index::new(2, 0)));
+        assert_eq!(a.prev_index(Index::new(2, 2)), Some(Index::new(2, 1)));
     }
 
 }

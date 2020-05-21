@@ -11,3 +11,7 @@ description = "A data structure mixing dynamic array and sorted set semantics."
 
 rand = "0.7.3"
 pretty_assertions = "0.6"
+
+[features]
+
+indextrait = []
