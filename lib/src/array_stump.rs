@@ -236,6 +236,26 @@ where
         }
     }
 
+    /// Returns the minimum value.
+    pub fn min(&self) -> Option<&T> {
+        if self.num_elements > 0 {
+            Some(&self.data[0][0])
+        } else {
+            None
+        }
+    }
+
+    /// Returns the maximum value.
+    pub fn max(&self) -> Option<&T> {
+        if self.num_elements > 0 {
+            let i = self.data.len() - 1;
+            let j = self.data[i].len() - 1;
+            Some(&self.data[i][j])
+        } else {
+            None
+        }
+    }
+
     /// Traverse collection given a callback.
     pub fn traverse<F>(&self, mut f: F)
     where
@@ -794,6 +814,26 @@ mod test {
         assert_eq!(a.prev_index(Index::new(2, 0)), Some(Index::new(1, 1)));
         assert_eq!(a.prev_index(Index::new(2, 1)), Some(Index::new(2, 0)));
         assert_eq!(a.prev_index(Index::new(2, 2)), Some(Index::new(2, 1)));
+    }
+
+    // ------------------------------------------------------------------------
+    // Rank (TODO) / min / max
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_min_max() {
+        let a = ArrayStump::new(int_comparator);
+        assert_eq!(a.min(), None);
+        assert_eq!(a.max(), None);
+        let a = new_array!(2, vec2d![[1]]);
+        assert_eq!(a.min(), Some(&1));
+        assert_eq!(a.max(), Some(&1));
+        let a = new_array!(2, vec2d![[1], [2, 3], [4]]);
+        assert_eq!(a.min(), Some(&1));
+        assert_eq!(a.max(), Some(&4));
+        let a = new_array!(2, vec2d![[1, 2], [3, 4]]);
+        assert_eq!(a.min(), Some(&1));
+        assert_eq!(a.max(), Some(&4));
     }
 
 }
