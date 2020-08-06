@@ -966,18 +966,24 @@ mod test {
         // Wiggle inside the same block
         a.data[0][0] = 5;
         assert_eq!(a.data, [vec![5, 4], vec![6, 8], vec![10, 12]]);
-        let transition = a.wiggle(Index::new(0,0)).unwrap();
+        let transition = a.wiggle(Index::FIRST).unwrap();
         assert_eq!(transition.new, Index::new(0, 1));
         assert_eq!(a.data, [vec![4, 5], vec![6, 8], vec![10, 12]]);
         
+        // Correct transition of item above modified range -> nop
         tracer = a.fix_index(transition, tracer);
         assert_eq!(tracer, Index::new(1, 0));
 
         // Wiggle over into another block
         a.data[0][0] = 11;
-        let transition = a.wiggle(Index::new(0, 0)).unwrap();
+        let transition = a.wiggle(Index::FIRST).unwrap();
         assert_eq!(transition.new, Index::new(2, 0));
         assert_eq!(a.data, [vec![5, 6], vec![8, 10], vec![11, 12]]);
+        
+        // Translation should affect 'old' index directly
+        assert_eq!(a.fix_index(transition, Index::FIRST), transition.new);
+
+        // Mutated item surpassed tracer from below -> drop
         tracer = a.fix_index(transition, tracer);
         assert_eq!(tracer, Index::new(0, 1));
 
@@ -986,6 +992,15 @@ mod test {
         let transition = a.wiggle(Index::new(2, 1)).unwrap();
         assert_eq!(transition.new, Index::new(0, 0));
         assert_eq!(a.data, [vec![1, 5], vec![6, 8], vec![10, 11]]);
+
+        // Mutated item surpassed tracer from above -> rise
+        tracer = a.fix_index(transition, tracer);
+        assert_eq!(tracer, Index::new(1, 0));
+
+        a.data[2][0] = 12;
+        let transition = a.wiggle(Index::new(2, 0)).unwrap();
+        
+        // Correct transition of item below modified range -> nop
         tracer = a.fix_index(transition, tracer);
         assert_eq!(tracer, Index::new(1, 0));
 
