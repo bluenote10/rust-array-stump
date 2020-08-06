@@ -7,8 +7,22 @@ pub struct Index {
 }
 
 impl Index {
+    pub const FIRST: Index = Index{outer: 0, inner: 0};
+
     pub fn new(outer: usize, inner: usize) -> Index {
         Index{outer, inner}
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct IndexTransition {
+    old: Index,
+    new: Index,
+}
+
+impl IndexTransition {
+    pub fn new(old: Index, new: Index) -> IndexTransition {
+        IndexTransition{old, new}
     }
 }
 
@@ -84,6 +98,8 @@ where
 
             // Note: The `.to_vec()` requires T: Clone but is faster than using drain. Keep?
             // let block_tail: Vec<_> = self.data[idx_block].drain(tail_from .. tail_upto).collect();
+            
+            // Note: why not use Vec.split_off?
 
             self.data[idx_block].truncate(tail_from);
             self.data.insert(idx_block + 1, block_tail);
@@ -319,6 +335,105 @@ where
     /// Internal debug helper function.
     pub fn debug(&self) {
         println!("{:?}", self.data);
+    }
+
+    pub fn debug_order(&self) {
+        println!("--- DEBUG ORDER");
+        let mut remember : Option<&T> = None;
+        for (idx, block) in self.data.iter().enumerate() {
+            println!("-- BLOCK #{} ({}/{} items)", idx, block.len(), block.capacity());
+            for value in block {
+                if let Some(last) = remember {
+                    println!("{:?}", (self.comparator)(last, value));
+                }
+                println!("{:?}", value);
+                remember = Some(value);
+            }
+        }
+    }
+
+    pub fn fix_index(&self, transition: IndexTransition, idx: Index) -> Index {
+        let old = transition.old;
+        let new = transition.new;
+
+        if idx == old {
+            new
+        } else {
+            if old < new {
+                if idx < old || new < idx {
+                    idx
+                } else {
+                    self.prev_index(idx).unwrap()
+                }
+            } else {
+                if idx < new || old < idx  {
+                    idx
+                } else {
+                    self.next_index(idx).unwrap()
+                }
+            }
+        }
+    }
+
+    pub fn wiggle(&mut self, idx: Index) -> Option<IndexTransition> {
+        let cmp = &self.comparator;
+        let val = self.get_by_index(idx);
+
+        if let Some(prev) = self.prev_index(idx) {
+            let mut dest = Some(prev);
+            while cmp(self.get_by_index(dest.unwrap()), val) == Ordering::Greater {
+                dest = self.prev_index(dest.unwrap());
+                if dest == None {
+                    break;
+                }
+            }
+            if dest != Some(prev)  {
+                let dest = if dest == None {
+                    Index::FIRST
+                } else {
+                    self.next_index(dest.unwrap()).unwrap()
+                };
+                // println!("move {:?} forward (to {:?})", idx, dest);
+                let val = self.data[idx.outer].remove(idx.inner);
+                for block in (dest.outer..idx.outer).rev() {
+                    let b = &mut self.data[block];
+                    let crosser = b.remove(b.len() - 1);
+                    self.data[block+1].insert(0, crosser);
+                }
+                self.data[dest.outer].insert(dest.inner, val);
+
+                return Some(IndexTransition::new( idx, dest ));
+            }
+        }
+
+        if let Some(next) = self.next_index(idx) {
+            let mut dest = Some(next);
+            while cmp(val, self.get_by_index(dest.unwrap())) == Ordering::Greater {
+                dest = self.next_index(dest.unwrap());
+                if dest == None {
+                    break;
+                }
+            }
+            if dest != Some(next)  {
+                let dest = if dest == None {
+                    let last_block = self.data.len() - 1;
+                    Index::new(last_block, self.data[last_block].len()-1)
+                } else {
+                    self.prev_index(dest.unwrap()).unwrap()
+                };
+                // println!("move {:?} back (to {:?})", idx, dest);
+                let val = self.data[idx.outer].remove(idx.inner);
+                for block in idx.outer..dest.outer {
+                    let crosser = self.data[block+1].remove(0);
+                    self.data[block].push(crosser);
+                }
+                self.data[dest.outer].insert(dest.inner, val);
+
+                return Some(IndexTransition::new( idx, dest ));
+            }
+        }
+
+        None
     }
 }
 
@@ -836,4 +951,62 @@ mod test {
         assert_eq!(a.max(), Some(&4));
     }
 
+    #[test]
+    fn test_wiggle() {
+        let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8], vec![10, 12]]);
+        // Wiggling without changes shan't do anything
+        let mut c = Some(Index::FIRST);
+        while c.is_some() {
+            assert!(a.wiggle(c.unwrap()).is_none());
+            c = a.next_index(c.unwrap());
+        }
+
+        let mut tracer = Index::new(1,0);
+        
+        // Wiggle inside the same block
+        a.data[0][0] = 5;
+        assert_eq!(a.data, [vec![5, 4], vec![6, 8], vec![10, 12]]);
+        let transition = a.wiggle(Index::FIRST).unwrap();
+        assert_eq!(transition.new, Index::new(0, 1));
+        assert_eq!(a.data, [vec![4, 5], vec![6, 8], vec![10, 12]]);
+        
+        // Correct transition of item above modified range -> nop
+        tracer = a.fix_index(transition, tracer);
+        assert_eq!(tracer, Index::new(1, 0));
+
+        // Wiggle over into another block
+        a.data[0][0] = 11;
+        let transition = a.wiggle(Index::FIRST).unwrap();
+        assert_eq!(transition.new, Index::new(2, 0));
+        assert_eq!(a.data, [vec![5, 6], vec![8, 10], vec![11, 12]]);
+        
+        // Translation should affect 'old' index directly
+        assert_eq!(a.fix_index(transition, Index::FIRST), transition.new);
+
+        // Mutated item surpassed tracer from below -> drop
+        tracer = a.fix_index(transition, tracer);
+        assert_eq!(tracer, Index::new(0, 1));
+
+        // Wiggle reverse over block boundary
+        a.data[2][1] = 1;
+        let transition = a.wiggle(Index::new(2, 1)).unwrap();
+        assert_eq!(transition.new, Index::new(0, 0));
+        assert_eq!(a.data, [vec![1, 5], vec![6, 8], vec![10, 11]]);
+
+        // Mutated item surpassed tracer from above -> rise
+        tracer = a.fix_index(transition, tracer);
+        assert_eq!(tracer, Index::new(1, 0));
+
+        a.data[2][0] = 12;
+        let transition = a.wiggle(Index::new(2, 0)).unwrap();
+        
+        // Correct transition of item below modified range -> nop
+        tracer = a.fix_index(transition, tracer);
+        assert_eq!(tracer, Index::new(1, 0));
+
+        // We must never increase capacities while wiggling
+        assert_eq!(a.data[0].capacity(), 2);
+        assert_eq!(a.data[1].capacity(), 2);
+        assert_eq!(a.data[2].capacity(), 2);
+    }
 }
