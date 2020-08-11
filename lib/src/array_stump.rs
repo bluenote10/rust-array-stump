@@ -341,7 +341,7 @@ where
         println!("--- DEBUG ORDER");
         let mut remember : Option<&T> = None;
         for (idx, block) in self.data.iter().enumerate() {
-            println!("-- BLOCK #{} ({}/{} items)", idx, block.len(), block.capacity());
+            println!("-- BLOCK #{} ({}/{} elements)", idx, block.len(), block.capacity());
             for value in block {
                 if let Some(last) = remember {
                     println!("{:?}", (self.comparator)(last, value));
@@ -352,7 +352,15 @@ where
         }
     }
 
-    pub fn fix_index(&self, transition: IndexTransition, idx: Index) -> Index {
+    pub fn fix_index(&self, transitions: &Vec<IndexTransition>, idx: Index) -> Index {
+        let mut result = idx;
+        for transition in transitions {
+            result = self.fix_index_single(transition.clone(), result);
+        }
+        result
+    }
+
+    fn fix_index_single(&self, transition: IndexTransition, idx: Index) -> Index {
         let old = transition.old;
         let new = transition.new;
 
@@ -375,65 +383,107 @@ where
         }
     }
 
-    pub fn wiggle(&mut self, idx: Index) -> Option<IndexTransition> {
+    // sort element referenced by 'idx' back (at least after element referenced by 'after')
+    fn sort_element_back(&mut self, idx: Index, after: Index) -> IndexTransition {
         let cmp = &self.comparator;
-        let val = self.get_by_index(idx);
+        let element = self.get_by_index(idx);
+        let mut next = self.next_index(after);
 
-        if let Some(prev) = self.prev_index(idx) {
-            let mut dest = Some(prev);
-            while cmp(self.get_by_index(dest.unwrap()), val) == Ordering::Greater {
-                dest = self.prev_index(dest.unwrap());
-                if dest == None {
-                    break;
-                }
+        while let Some(nidx) = next {
+            if cmp(element, self.get_by_index(nidx)) != Ordering::Greater {
+                break;
             }
-            if dest != Some(prev)  {
-                let dest = if dest == None {
-                    Index::FIRST
-                } else {
-                    self.next_index(dest.unwrap()).unwrap()
-                };
-                // println!("move {:?} forward (to {:?})", idx, dest);
-                let val = self.data[idx.outer].remove(idx.inner);
-                for block in (dest.outer..idx.outer).rev() {
-                    let b = &mut self.data[block];
-                    let crosser = b.remove(b.len() - 1);
-                    self.data[block+1].insert(0, crosser);
-                }
-                self.data[dest.outer].insert(dest.inner, val);
+            next = self.next_index(nidx);
+        }
 
-                return Some(IndexTransition::new( idx, dest ));
+        let dest = if let Some(next) = next {
+            self.prev_index(next).unwrap()
+        } else {
+            let last_block = self.data.len() - 1;
+            Index::new(last_block, self.data[last_block].len()-1)
+        };
+
+        let element = self.data[idx.outer].remove(idx.inner);
+
+        for block_index in idx.outer..dest.outer {
+            let crosser = self.data[block_index + 1].remove(0);
+            self.data[block_index].push(crosser);
+        }
+
+        self.data[dest.outer].insert(dest.inner, element);
+
+        return IndexTransition::new( idx, dest );
+    }
+
+      // sort element referenced by 'idx' forward (at least before element referenced by 'before')
+      fn sort_element_forward(&mut self, idx: Index, before: Index) -> IndexTransition {
+        let cmp = &self.comparator;
+        let element = self.get_by_index(idx);
+        let mut next = self.prev_index(before);
+
+        while let Some(nidx) = next {
+            if cmp(self.get_by_index(nidx), element) != Ordering::Greater {
+                break;
+            }
+            next = self.prev_index(nidx);
+        }
+
+        let dest = if let Some(next) = next {
+            self.next_index(next).unwrap()
+        } else {
+            Index::FIRST
+        };
+
+        let element = self.data[idx.outer].remove(idx.inner);
+
+        for block_index in (dest.outer..idx.outer).rev() {
+            let block = &mut self.data[block_index];
+            let crosser = block.remove(block.len() - 1);
+            self.data[block_index + 1].insert(0, crosser);
+        }
+        self.data[dest.outer].insert(dest.inner, element);
+
+        return IndexTransition::new( idx, dest );
+    }
+
+    // ensure order for the elements in range [from, to] is correct
+    pub fn fix_rank_range(&mut self, from: Index, to: Index) -> Vec<IndexTransition> {
+        let mut result = vec![];
+
+        // also check whether first element needs to be moved forward -> start one element early
+        let mut current = self.prev_index(from).unwrap_or(from);
+        
+        // 'next_next' is the first element with known good order after the range to sort
+        let next_next = self.next_index(to);
+
+        while current <= to {
+            let element = self.get_by_index(current);
+            let next = self.next_index(current);
+
+            if let Some(next) = next {
+                // if there's an order violation
+                if (self.comparator)(element, self.get_by_index(next)) == Ordering::Greater {
+                    if let Some(next_next) = next_next {
+                        // check whether 'current' needs to go back or 'next' needs to go forward
+                        if (self.comparator)(element, self.get_by_index(next_next)) == Ordering::Greater {
+                            result.push(self.sort_element_back(current, next_next));
+                        } else {
+                            result.push(self.sort_element_forward(next, current));
+                        }
+                    } else {
+                        // special case when there is nothing after the range to sort
+                        result.push(self.sort_element_back(current, to));
+                    }
+                }
+                // advance
+                current = next;
+            } else {
+                // we're done
+                break;
             }
         }
 
-        if let Some(next) = self.next_index(idx) {
-            let mut dest = Some(next);
-            while cmp(val, self.get_by_index(dest.unwrap())) == Ordering::Greater {
-                dest = self.next_index(dest.unwrap());
-                if dest == None {
-                    break;
-                }
-            }
-            if dest != Some(next)  {
-                let dest = if dest == None {
-                    let last_block = self.data.len() - 1;
-                    Index::new(last_block, self.data[last_block].len()-1)
-                } else {
-                    self.prev_index(dest.unwrap()).unwrap()
-                };
-                // println!("move {:?} back (to {:?})", idx, dest);
-                let val = self.data[idx.outer].remove(idx.inner);
-                for block in idx.outer..dest.outer {
-                    let crosser = self.data[block+1].remove(0);
-                    self.data[block].push(crosser);
-                }
-                self.data[dest.outer].insert(dest.inner, val);
-
-                return Some(IndexTransition::new( idx, dest ));
-            }
-        }
-
-        None
+        result
     }
 }
 
@@ -952,57 +1002,37 @@ mod test {
     }
 
     #[test]
-    fn test_wiggle() {
+    fn test_fix_rang_range() {
         let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8], vec![10, 12]]);
+
         // Wiggling without changes shan't do anything
         let mut c = Some(Index::FIRST);
         while c.is_some() {
-            assert!(a.wiggle(c.unwrap()).is_none());
+            assert_eq!(a.fix_rank_range(c.unwrap(), c.unwrap()).len(), 0);
             c = a.next_index(c.unwrap());
         }
+        assert_eq!(a.fix_rank_range(Index::FIRST, Index::new(2,1)).len(), 0);
 
-        let mut tracer = Index::new(1,0);
-        
-        // Wiggle inside the same block
+        // find the right place for an element to go
         a.data[0][0] = 5;
         assert_eq!(a.data, [vec![5, 4], vec![6, 8], vec![10, 12]]);
-        let transition = a.wiggle(Index::FIRST).unwrap();
-        assert_eq!(transition.new, Index::new(0, 1));
+        a.sort_element_back(Index::FIRST, Index::FIRST);
         assert_eq!(a.data, [vec![4, 5], vec![6, 8], vec![10, 12]]);
-        
-        // Correct transition of item above modified range -> nop
-        tracer = a.fix_index(transition, tracer);
-        assert_eq!(tracer, Index::new(1, 0));
 
-        // Wiggle over into another block
-        a.data[0][0] = 11;
-        let transition = a.wiggle(Index::FIRST).unwrap();
-        assert_eq!(transition.new, Index::new(2, 0));
-        assert_eq!(a.data, [vec![5, 6], vec![8, 10], vec![11, 12]]);
-        
-        // Translation should affect 'old' index directly
-        assert_eq!(a.fix_index(transition, Index::FIRST), transition.new);
+        // skipped elements should stay out of order
+        a.data[0][1] = 1;
+        a.data[1][0] = 3;
+        a.sort_element_forward(Index::new(1, 0), Index::new(0, 1));
+        assert_eq!(a.data, [vec![3, 4], vec![1, 8], vec![10, 12]]);
 
-        // Mutated item surpassed tracer from below -> drop
-        tracer = a.fix_index(transition, tracer);
-        assert_eq!(tracer, Index::new(0, 1));
-
-        // Wiggle reverse over block boundary
-        a.data[2][1] = 1;
-        let transition = a.wiggle(Index::new(2, 1)).unwrap();
-        assert_eq!(transition.new, Index::new(0, 0));
-        assert_eq!(a.data, [vec![1, 5], vec![6, 8], vec![10, 11]]);
-
-        // Mutated item surpassed tracer from above -> rise
-        tracer = a.fix_index(transition, tracer);
-        assert_eq!(tracer, Index::new(1, 0));
-
-        a.data[2][0] = 12;
-        let transition = a.wiggle(Index::new(2, 0)).unwrap();
-        
-        // Correct transition of item below modified range -> nop
-        tracer = a.fix_index(transition, tracer);
-        assert_eq!(tracer, Index::new(1, 0));
+        // fix multiple element range at once
+        a.data[1][1] = 2;
+        a.data[2][0] = 20;
+        let ts = a.fix_rank_range(Index::new(1,0),Index::new(2,0));
+        assert_eq!(a.data, [vec![1, 2], vec![3, 4], vec![12, 20]]);
+        assert_eq!(a.fix_index(&ts, Index::new(1, 0)), Index::new(0, 0));
+        assert_eq!(a.fix_index(&ts, Index::new(1, 1)), Index::new(0, 1));
+        assert_eq!(a.fix_index(&ts, Index::new(2, 1)), Index::new(2, 0));
 
         // We must never increase capacities while wiggling
         assert_eq!(a.data[0].capacity(), 2);
