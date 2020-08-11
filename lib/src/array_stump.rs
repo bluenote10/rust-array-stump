@@ -352,6 +352,7 @@ where
         }
     }
 
+    // possibility to fix an index after fixing the rank
     pub fn fix_index(&self, transitions: &Vec<IndexTransition>, idx: Index) -> Index {
         let mut result = idx;
         for transition in transitions {
@@ -1002,7 +1003,7 @@ mod test {
     }
 
     #[test]
-    fn test_fix_rang_range() {
+    fn test_fix_rank_range() {
         let mut a = new_array!(2, vec![vec![2, 4], vec![6, 8], vec![10, 12]]);
 
         // Wiggling without changes shan't do anything
@@ -1033,6 +1034,19 @@ mod test {
         assert_eq!(a.fix_index(&ts, Index::new(1, 0)), Index::new(0, 0));
         assert_eq!(a.fix_index(&ts, Index::new(1, 1)), Index::new(0, 1));
         assert_eq!(a.fix_index(&ts, Index::new(2, 1)), Index::new(2, 0));
+
+        a.data[1][1] = 0;
+        let ts = a.fix_rank_range(Index::new(1, 1), Index::new(1, 1));
+        assert_eq!(a.fix_index(&ts, Index::new(1, 0)), Index::new(1, 1));
+
+        a.data[0][0] = 4;
+        let _ = a.fix_rank_range(Index::FIRST, Index::FIRST);
+        assert_eq!(a.data, [vec![1, 2], vec![3, 4], vec![12, 20]]);
+
+        // special case at the end
+        a.data[2][0] = 23;
+        let _ = a.fix_rank_range(Index::new(2, 1), Index::new(2, 2));
+        assert_eq!(a.data, [vec![1, 2], vec![3, 4], vec![20, 23]]);
 
         // We must never increase capacities while wiggling
         assert_eq!(a.data[0].capacity(), 2);
