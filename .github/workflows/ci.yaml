@@ -60,7 +60,7 @@ jobs:
           path: cobertura.xml
 
   lint:
-    name: Clippy + rustfmt
+    name: Linting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -74,14 +74,14 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
