@@ -47,6 +47,8 @@ jobs:
         with:
           command: test
 
+      # TODO: activate
+
       # - name: Run cargo fmt
       #   uses: actions-rs/cargo@v1
       #   with:
@@ -64,6 +66,7 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
+          version: '0.16.0'
           args: '-v -o Html -o Xml --exclude-files "benchmarks/*"'
 
       - name: Upload to codecov.io
