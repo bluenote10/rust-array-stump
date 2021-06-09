@@ -155,6 +155,7 @@ mod test {
         m.insert(2, 1);
         m.insert(0, 1);
         let mut cur = 0;
+        #[allow(clippy::explicit_counter_loop)]
         for (k, v) in m {
             assert_eq!(k, cur);
             assert_eq!(v, 1);

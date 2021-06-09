@@ -64,6 +64,7 @@ impl Ord for FloatWrapper {
 }
 
 
+#[allow(clippy::too_many_arguments)]
 pub fn export_elapsed_times(
     name: &str,
     run: i32,
@@ -117,6 +118,7 @@ pub fn call_plots(benchmark_mode: &str, generator_mode: &str) {
 }
 
 
+#[allow(clippy::too_many_arguments)]
 pub fn export_stats(
     iters: &[usize],
     times: &[f64],
