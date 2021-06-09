@@ -53,11 +53,11 @@ jobs:
       #     command: fmt
       #     args: --all -- --check
 
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+      # - name: Run cargo clippy
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: clippy
+      #     args: -- -D warnings
 
       # Code coverage
 
@@ -68,8 +68,6 @@ jobs:
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.0.2
-        with:
-          token: ${{secrets.CODECOV_TOKEN}}
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v1
