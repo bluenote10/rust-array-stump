@@ -345,28 +345,14 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn test_binary_search_by() {
         let data = [Some(1), Some(2), Some(3)];
-        assert_eq!(
-            binary_search_by(&data, |x| int_comparator(x, &0)),
-            (0, false)
-        );
-        assert_eq!(
-            binary_search_by(&data, |x| int_comparator(x, &1)),
-            (0, true)
-        );
-        assert_eq!(
-            binary_search_by(&data, |x| int_comparator(x, &2)),
-            (1, true)
-        );
-        assert_eq!(
-            binary_search_by(&data, |x| int_comparator(x, &3)),
-            (2, true)
-        );
-        assert_eq!(
-            binary_search_by(&data, |x| int_comparator(x, &4)),
-            (3, false)
-        );
+        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &0)), (0, false));
+        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &1)), (0, true));
+        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &2)), (1, true));
+        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &3)), (2, true));
+        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &4)), (3, false));
     }
 
     fn generate_random_array(rng: &mut StdRng, len: usize) -> (Vec<Option<i32>>, Vec<i32>) {
@@ -442,44 +428,59 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn test_determine_insert_slot() {
         // cases without free slot
-        assert_eq!(determine_insert_slot(&[Some(0)], 0), None);
-        assert_eq!(determine_insert_slot(&[Some(0)], 1), None);
-        assert_eq!(determine_insert_slot(&[Some(0), Some(1)], 0), None);
-        assert_eq!(determine_insert_slot(&[Some(0), Some(1)], 1), None);
-        assert_eq!(determine_insert_slot(&[Some(0), Some(1)], 2), None);
-
-        assert_eq!(determine_insert_slot(&[None, Some(0)], 1), Some(0));
-        assert_eq!(determine_insert_slot(&[None, None, Some(0)], 2), Some(0));
         assert_eq!(
-            determine_insert_slot(&[None, None, None, Some(0)], 3),
-            Some(1)
+            determine_insert_slot(&[Some(0)], 0), None
         );
         assert_eq!(
-            determine_insert_slot(&[None, None, None, None, Some(0)], 4),
-            Some(1)
+            determine_insert_slot(&[Some(0)], 1), None
         );
         assert_eq!(
-            determine_insert_slot(&[None, None, None, None, None, Some(0)], 5),
-            Some(2)
+            determine_insert_slot(&[Some(0), Some(1)], 0), None
+        );
+        assert_eq!(
+            determine_insert_slot(&[Some(0), Some(1)], 1), None
+        );
+        assert_eq!(
+            determine_insert_slot(&[Some(0), Some(1)], 2), None
         );
 
-        assert_eq!(determine_insert_slot(&[Some(0), None, Some(1)], 2), Some(1));
         assert_eq!(
-            determine_insert_slot(&[Some(0), None, None, Some(1)], 3),
-            Some(1)
+            determine_insert_slot(&[None, Some(0)], 1), Some(0)
         );
         assert_eq!(
-            determine_insert_slot(&[Some(0), None, None, None, Some(1)], 4),
-            Some(2)
+            determine_insert_slot(&[None, None, Some(0)], 2), Some(0)
+        );
+        assert_eq!(
+            determine_insert_slot(&[None, None, None, Some(0)], 3), Some(1)
+        );
+        assert_eq!(
+            determine_insert_slot(&[None, None, None, None, Some(0)], 4), Some(1)
+        );
+        assert_eq!(
+            determine_insert_slot(&[None, None, None, None, None, Some(0)], 5), Some(2)
         );
 
-        assert_eq!(determine_insert_slot(&[Some(0), None], 2), Some(1));
-        assert_eq!(determine_insert_slot(&[Some(0), None, None], 3), Some(1));
         assert_eq!(
-            determine_insert_slot(&[Some(0), None, None, None], 4),
-            Some(2)
+            determine_insert_slot(&[Some(0), None, Some(1)], 2), Some(1)
+        );
+        assert_eq!(
+            determine_insert_slot(&[Some(0), None, None, Some(1)], 3), Some(1)
+        );
+        assert_eq!(
+            determine_insert_slot(&[Some(0), None, None, None, Some(1)], 4), Some(2)
+        );
+
+        assert_eq!(
+            determine_insert_slot(&[Some(0), None], 2), Some(1)
+        );
+        assert_eq!(
+            determine_insert_slot(&[Some(0), None, None], 3), Some(1)
+        );
+        assert_eq!(
+            determine_insert_slot(&[Some(0), None, None, None], 4), Some(2)
         );
 
         let all_none: &[Option<i32>] = &[None, None, None];
@@ -502,8 +503,8 @@ mod test {
         );
     }
 
-    //#[ignore]
     #[test]
+    #[rustfmt::skip]
     fn test_redistribute() {
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 0, 0, 10),
@@ -520,59 +521,27 @@ mod test {
 
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 2, 0, 10),
-            vec![
-                None,
-                None,
-                Some(10),
-                None,
-                None,
-                Some(20),
-                None,
-                None,
-                Some(30),
-                None,
-                None
-            ]
+            vec![None, None, Some(10), None, None, Some(20), None, None, Some(30), None, None]
         );
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 2, 1, 25),
-            vec![
-                None,
-                None,
-                Some(20),
-                None,
-                None,
-                Some(25),
-                None,
-                None,
-                Some(30),
-                None,
-                None
-            ]
+            vec![None, None, Some(20), None, None, Some(25), None, None, Some(30), None, None]
         );
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 2, 2, 40),
-            vec![
-                None,
-                None,
-                Some(20),
-                None,
-                None,
-                Some(30),
-                None,
-                None,
-                Some(40),
-                None,
-                None
-            ]
+            vec![None, None, Some(20), None, None, Some(30), None, None, Some(40), None, None]
         );
 
         let v_empty: Vec<Option<i32>> = vec![];
-        assert_eq!(redistribute(&v_empty, 0, 0, 0, 42), vec![Some(42)]);
+        assert_eq!(
+            redistribute(&v_empty, 0, 0, 0, 42),
+            vec![Some(42)]
+        );
         assert_eq!(
             redistribute(&v_empty, 0, 1, 0, 42),
             vec![None, Some(42), None]
         );
+
     }
 }
 

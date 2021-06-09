@@ -74,7 +74,6 @@ pub fn export_elapsed_times(
     iters: &[usize],
     times: &[f64],
 ) {
-
     let json_data = json!({
         "name": name,
         "run": run,
@@ -96,16 +95,11 @@ pub fn export_elapsed_times(
 
 
 pub fn call_plots(benchmark_mode: &str, generator_mode: &str) {
-    let script_path = Path::new(file!())
-        .to_path_buf()
-        .canonicalize()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf() // -> /src
-        .parent()
-        .unwrap()
-        .to_path_buf() // -> /
+    #[rustfmt::skip]
+    let script_path = Path::new(file!()).to_path_buf()
+        .canonicalize().unwrap()
+        .parent().unwrap().to_path_buf() // -> /src
+        .parent().unwrap().to_path_buf() // -> /
         .join("scripts")
         .join("plot.py");
     Command::new(script_path.as_os_str())
@@ -133,7 +127,6 @@ pub fn export_stats(
     capacity: &[u16],
     num_cmp_calls: &[u64],
 ) {
-
     let json_data = json!({
         "iters": iters,
         "times": times,
@@ -155,16 +148,11 @@ pub fn export_stats(
 
 
 pub fn call_plots_stats() {
-    let script_path = Path::new(file!())
-        .to_path_buf()
-        .canonicalize()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf() // -> /src
-        .parent()
-        .unwrap()
-        .to_path_buf() // -> /
+    #[rustfmt::skip]
+    let script_path = Path::new(file!()).to_path_buf()
+        .canonicalize().unwrap()
+        .parent().unwrap().to_path_buf() // -> /src
+        .parent().unwrap().to_path_buf() // -> /
         .join("scripts")
         .join("plot_stats.py");
     Command::new(script_path.as_os_str())

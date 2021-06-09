@@ -171,7 +171,6 @@ where
 
                 let len = i + 1;
                 if len % params.measure_every == 0 {
-
                     let search_values_shuffled = if recent {
                         helpers::shuffle_clone(&values[len - params.measure_every .. len])
                     } else {
