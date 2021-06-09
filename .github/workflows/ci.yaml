@@ -1,0 +1,80 @@
+# https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow
+# https://github.com/actions-rs/example
+# https://github.com/actions-rs/tarpaulin
+
+name: ci
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 0' # at 00:00 every Sunday
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - "1.45.0"
+          - stable
+          - nightly
+
+    name: Rust ${{ matrix.rust }}
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Install clippy
+        run: rustup component add clippy
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      # TODO: activate
+
+      # - name: Run cargo fmt
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: fmt
+      #     args: --all -- --check
+
+      # - name: Run cargo clippy
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: clippy
+      #     args: -- -D warnings
+
+      # Code coverage
+
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.16.0'
+          args: '-v -o Html -o Xml --exclude-files "benchmarks/*"'
+
+      - name: Upload to codecov.io
+        # https://github.com/codecov/codecov-action
+        uses: codecov/codecov-action@v1
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
