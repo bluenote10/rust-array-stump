@@ -65,6 +65,7 @@ impl std::fmt::Display for GeneratorMode {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_generic_benchmark<T, Init, Insert, Remove, GetLen, Find>(
     mode: BenchmarkMode,
     params: BenchmarkParams,
@@ -205,7 +206,7 @@ impl AllBenches {
                 mode,
                 params,
                 &values,
-                || BTreeSet::new(),
+                BTreeSet::new,
                 |set, x| { set.insert(FloatWrapper(x)) },
                 |set, x| { set.remove(&FloatWrapper(x)) },
                 |set| set.len(),

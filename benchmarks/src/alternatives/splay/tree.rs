@@ -196,6 +196,7 @@ where
             }
         }
 
+        #[allow(clippy::match_single_binding)]
         let (value, left, right) = match *self.root_mut().take().unwrap() {
             Node { left, right, value, .. } => (value, left, right),
         };
@@ -266,6 +267,7 @@ where
     }
 }
 
+#[allow(clippy::borrowed_box)]
 fn traverse<K, V, F>(node: &Box<Node<K, V>>, cb: &mut F) where F: FnMut(&K, &V) {
     if let Some(ref left) = node.left {
         traverse(&left, cb);

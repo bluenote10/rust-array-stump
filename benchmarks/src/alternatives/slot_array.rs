@@ -30,6 +30,10 @@ where
         self.num_elements
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.num_elements == 0
+    }
+
     pub fn insert(&mut self, t: T) -> bool {
         let (index_larger_or_equal, equals) = binary_search_by(&self.data_raw, #[inline(always)] |x| (self.comparator)(x, &t));
 
@@ -76,7 +80,7 @@ where
     F: FnMut(&T) -> Ordering,
     T: std::fmt::Debug,
 {
-    if data.len() == 0 {
+    if data.is_empty() {
         //return BinarySearchResult::Err;
         return (data.len(), false);
     }
@@ -114,6 +118,7 @@ where
 }
 
 #[inline]
+#[allow(clippy::needless_lifetimes)]
 fn next<'a, T>(data: &'a [Option<T>], idx: usize, bound: usize) -> Option<(usize, &'a T)> {
     let mut i = idx;
     // println!("next {} {}", idx, bound);
@@ -134,6 +139,7 @@ fn next<'a, T>(data: &'a [Option<T>], idx: usize, bound: usize) -> Option<(usize
 }
 
 #[inline]
+#[allow(clippy::needless_lifetimes)]
 fn prev<'a, T>(data: &'a [Option<T>], idx: usize, bound: usize) -> Option<(usize, &'a T)> {
     let mut i = idx;
     // println!("prev {} {}", idx, bound);
@@ -154,6 +160,7 @@ fn prev<'a, T>(data: &'a [Option<T>], idx: usize, bound: usize) -> Option<(usize
 }
 
 #[inline]
+#[allow(clippy::needless_lifetimes)]
 fn determine_insert_slot<'a, T>(data: &'a [Option<T>], insert_index: usize) -> Option<usize> {
     let idx_start = insert_index as i64 - 1;
     let mut idx_low: i64 = idx_start;
@@ -184,6 +191,7 @@ fn determine_insert_slot<'a, T>(data: &'a [Option<T>], insert_index: usize) -> O
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 fn redistribute<'a, T>(data: &'a [Option<T>], num_elements: usize, spacing: usize, insert_index: usize, t: T) -> Vec<Option<T>>
 where
     T: Clone
@@ -258,7 +266,7 @@ where
     });
 
     if !inserted {
-        new_data[idx_o] = Some(t.clone());
+        new_data[idx_o] = Some(t);
     }
 
     new_data
@@ -269,6 +277,7 @@ where
     T: Clone,
     F: FnMut(usize, &T),
 {
+    #[allow(clippy::needless_range_loop)]
     for i in 0 .. data.len() {
         if let Some(x) = &data[i] {
             f(i, x);
@@ -296,6 +305,7 @@ mod test {
     where
         F: FnMut(&T) -> Ordering,
     {
+        #[allow(clippy::needless_range_loop)]
         for i in 0 .. data.len() {
             if let Some(x) = &data[i] {
                 let cmp = f(x);

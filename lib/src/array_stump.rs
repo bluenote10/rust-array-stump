@@ -66,9 +66,13 @@ where
         self.num_elements
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.num_elements == 0
+    }
+
     /// Insert a value.
     pub fn insert(&mut self, t: T) -> Option<Index> {
-        if self.data.len() == 0 {
+        if self.data.is_empty() {
             self.data.push(self.new_block(t));
             self.num_elements += 1;
             return Some(Index::new(0, 0));
@@ -98,7 +102,7 @@ where
 
             // Note: The `.to_vec()` requires T: Clone but is faster than using drain. Keep?
             // let block_tail: Vec<_> = self.data[idx_block].drain(tail_from .. tail_upto).collect();
-            
+
             // Note: why not use Vec.split_off?
 
             self.data[idx_block].truncate(tail_from);
@@ -141,7 +145,7 @@ where
 
     /// Remove a value.
     pub fn remove(&mut self, t: &T) -> bool {
-        if self.data.len() == 0 {
+        if self.data.is_empty() {
             return false;
         }
 
@@ -175,7 +179,7 @@ where
     /// Try to find an existing value.
     #[inline]
     pub fn find(&self, t: &T) -> Option<Index> {
-        if self.data.len() == 0 {
+        if self.data.is_empty() {
             return None;
         }
 
@@ -222,16 +226,12 @@ where
     pub fn next_index(&self, idx: Index) -> Option<Index> {
         if idx.outer >= self.data.len() {
             None
+        } else if idx.inner < self.data[idx.outer].len() - 1 {
+            Some(Index::new(idx.outer, idx.inner + 1))
+        } else if idx.outer < self.data.len() - 1 {
+            Some(Index::new(idx.outer + 1, 0))
         } else {
-            if idx.inner < self.data[idx.outer].len() - 1 {
-                Some(Index::new(idx.outer, idx.inner + 1))
-            } else {
-                if idx.outer < self.data.len() - 1 {
-                    Some(Index::new(idx.outer + 1, 0))
-                } else {
-                    None
-                }
-            }
+            None
         }
     }
 
@@ -239,16 +239,12 @@ where
     pub fn prev_index(&self, idx: Index) -> Option<Index> {
         if idx.outer >= self.data.len() {
             None
+        } else if idx.inner > 0 {
+            Some(Index::new(idx.outer, idx.inner - 1))
+        } else if idx.outer > 0 {
+            Some(Index::new(idx.outer - 1, self.data[idx.outer - 1].len() - 1))
         } else {
-            if idx.inner > 0 {
-                Some(Index::new(idx.outer, idx.inner - 1))
-            } else {
-                if idx.outer > 0 {
-                    Some(Index::new(idx.outer - 1, self.data[idx.outer - 1].len() - 1))
-                } else {
-                    None
-                }
-            }
+            None
         }
     }
 
@@ -353,34 +349,30 @@ where
     }
 
     // possibility to fix an index after fixing the rank
-    pub fn fix_index(&self, transitions: &Vec<IndexTransition>, idx: Index) -> Index {
+    pub fn fix_index(&self, transitions: &[IndexTransition], idx: Index) -> Index {
         let mut result = idx;
         for transition in transitions {
-            result = self.fix_index_single(transition.clone(), result);
+            result = self.fix_index_single(transition, result);
         }
         result
     }
 
-    fn fix_index_single(&self, transition: IndexTransition, idx: Index) -> Index {
+    fn fix_index_single(&self, transition: &IndexTransition, idx: Index) -> Index {
         let old = transition.old;
         let new = transition.new;
 
         if idx == old {
             new
-        } else {
-            if old < new {
-                if idx < old || new < idx {
-                    idx
-                } else {
-                    self.prev_index(idx).unwrap()
-                }
+        } else if old < new {
+            if idx < old || new < idx {
+                idx
             } else {
-                if idx < new || old < idx  {
-                    idx
-                } else {
-                    self.next_index(idx).unwrap()
-                }
+                self.prev_index(idx).unwrap()
             }
+        } else if idx < new || old < idx  {
+            idx
+        } else {
+            self.next_index(idx).unwrap()
         }
     }
 
@@ -413,7 +405,7 @@ where
 
         self.data[dest.outer].insert(dest.inner, element);
 
-        return IndexTransition::new( idx, dest );
+        IndexTransition::new( idx, dest )
     }
 
       // sort element referenced by 'idx' forward (at least before element referenced by 'before')
@@ -444,7 +436,7 @@ where
         }
         self.data[dest.outer].insert(dest.inner, element);
 
-        return IndexTransition::new( idx, dest );
+        IndexTransition::new( idx, dest )
     }
 
     // ensure order for the elements in range [from, to] is correct
@@ -453,7 +445,7 @@ where
 
         // also check whether first element needs to be moved forward -> start one element early
         let mut current = self.prev_index(from).unwrap_or(from);
-        
+
         // 'next_next' is the first element with known good order after the range to sort
         let next_next = self.next_index(to);
 
@@ -514,7 +506,7 @@ where
     F: FnMut(&T) -> Ordering,
     T: std::fmt::Debug,
 {
-    if data.len() == 0 {
+    if data.is_empty() {
         return (data.len(), false);
     }
     let mut l: usize = 0;
@@ -615,6 +607,7 @@ mod test {
     where
         F: FnMut(&T) -> Ordering,
     {
+        #[allow(clippy::needless_range_loop)]
         for i in 0 .. data.len() {
             let x = &data[i];
             let cmp = f(x);
@@ -784,7 +777,7 @@ mod test {
 
     #[test]
     fn test_array_stump_collect() {
-        for cap in vec![2, 3, 4, 5] {
+        for &cap in &[2, 3, 4, 5] {
             let mut a = ArrayStump::new_explicit(int_comparator, cap as u16);
             insert_many!(a, [1, 2, 3, 4]);
             assert_eq!(a.collect(), [1, 2, 3, 4]);
@@ -842,6 +835,7 @@ mod test {
     // ------------------------------------------------------------------------
 
     #[test]
+    #[allow(clippy::float_cmp)]
     fn test_statistics_and_debugging() {
         let a = new_array!(4, vec2d![[1], [2, 3], [4, 5, 6]]);
         a.debug();

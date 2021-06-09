@@ -25,6 +25,10 @@ where
         self.data.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
     pub fn insert(&mut self, t: T) -> bool {
         match self.data.binary_search_by(|x| (self.comparator)(x, &t)) {
             Ok(_) => {
