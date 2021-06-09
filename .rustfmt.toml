@@ -1,0 +1,7 @@
+# https://rust-lang.github.io/rustfmt/?version=master&search=
+
+blank_lines_upper_bound = 2
+max_width = 160
+preserve_block_start_blank_lines = true
+spaces_around_ranges = true
+space_around_attr_eq = false
