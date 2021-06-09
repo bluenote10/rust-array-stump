@@ -21,7 +21,9 @@ where
         SlotArray {
             spacing,
             comparator,
-            data_raw: iter::repeat(None).take(initial_capacity * (spacing + 1)).collect(),
+            data_raw: iter::repeat(None)
+                .take(initial_capacity * (spacing + 1))
+                .collect(),
             num_elements: 0,
         }
     }
@@ -35,7 +37,11 @@ where
     }
 
     pub fn insert(&mut self, t: T) -> bool {
-        let (index_larger_or_equal, equals) = binary_search_by(&self.data_raw, #[inline(always)] |x| (self.comparator)(x, &t));
+        let (index_larger_or_equal, equals) = binary_search_by(
+            &self.data_raw,
+            #[inline(always)]
+            |x| (self.comparator)(x, &t),
+        );
 
         if !equals {
             let insert_slot = determine_insert_slot(&self.data_raw, index_larger_or_equal);
@@ -43,7 +49,13 @@ where
             if let Some(idx) = insert_slot {
                 self.data_raw[idx] = Some(t);
             } else {
-                self.data_raw = redistribute(&self.data_raw, self.num_elements, self.spacing, index_larger_or_equal, t);
+                self.data_raw = redistribute(
+                    &self.data_raw,
+                    self.num_elements,
+                    self.spacing,
+                    index_larger_or_equal,
+                    t,
+                );
             }
             self.num_elements += 1;
 
@@ -54,7 +66,11 @@ where
     }
 
     pub fn remove(&mut self, t: &T) -> bool {
-        let (index_larger_or_equal, equals) = binary_search_by(&self.data_raw, #[inline(always)] |x| (self.comparator)(x, &t));
+        let (index_larger_or_equal, equals) = binary_search_by(
+            &self.data_raw,
+            #[inline(always)]
+            |x| (self.comparator)(x, &t),
+        );
         if equals {
             self.data_raw[index_larger_or_equal] = None;
             self.num_elements -= 1;
@@ -71,7 +87,6 @@ where
     pub fn debug(&self) {
         println!("{:?}", self.data_raw);
     }
-
 }
 
 
@@ -192,9 +207,15 @@ fn determine_insert_slot<'a, T>(data: &'a [Option<T>], insert_index: usize) -> O
 }
 
 #[allow(clippy::needless_lifetimes)]
-fn redistribute<'a, T>(data: &'a [Option<T>], num_elements: usize, spacing: usize, insert_index: usize, t: T) -> Vec<Option<T>>
+fn redistribute<'a, T>(
+    data: &'a [Option<T>],
+    num_elements: usize,
+    spacing: usize,
+    insert_index: usize,
+    t: T,
+) -> Vec<Option<T>>
 where
-    T: Clone
+    T: Clone,
 {
     // println!("\nredistribute:");
     if num_elements == 0 {
@@ -297,9 +318,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::cmp::Ordering;
-    use rand::{Rng, SeedableRng};
     use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+    use std::cmp::Ordering;
 
     pub fn binary_search_by_reference<T, F>(data: &[Option<T>], mut f: F) -> (usize, bool)
     where
@@ -326,11 +347,26 @@ mod test {
     #[test]
     fn test_binary_search_by() {
         let data = [Some(1), Some(2), Some(3)];
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &0)), (0, false));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &1)), (0, true));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &2)), (1, true));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &3)), (2, true));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &4)), (3, false));
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &0)),
+            (0, false)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &1)),
+            (0, true)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &2)),
+            (1, true)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &3)),
+            (2, true)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &4)),
+            (3, false)
+        );
     }
 
     fn generate_random_array(rng: &mut StdRng, len: usize) -> (Vec<Option<i32>>, Vec<i32>) {
@@ -354,7 +390,11 @@ mod test {
         (data, values)
     }
 
-    fn insert_random_slots(rng: &mut StdRng, data: &[Option<i32>], slot_prob: f64) -> Vec<Option<i32>> {
+    fn insert_random_slots(
+        rng: &mut StdRng,
+        data: &[Option<i32>],
+        slot_prob: f64,
+    ) -> Vec<Option<i32>> {
         let mut data_with_slots = Vec::new();
         let mut i = 0;
         while i < data.len() {
@@ -404,56 +444,42 @@ mod test {
     #[test]
     fn test_determine_insert_slot() {
         // cases without free slot
+        assert_eq!(determine_insert_slot(&[Some(0)], 0), None);
+        assert_eq!(determine_insert_slot(&[Some(0)], 1), None);
+        assert_eq!(determine_insert_slot(&[Some(0), Some(1)], 0), None);
+        assert_eq!(determine_insert_slot(&[Some(0), Some(1)], 1), None);
+        assert_eq!(determine_insert_slot(&[Some(0), Some(1)], 2), None);
+
+        assert_eq!(determine_insert_slot(&[None, Some(0)], 1), Some(0));
+        assert_eq!(determine_insert_slot(&[None, None, Some(0)], 2), Some(0));
         assert_eq!(
-            determine_insert_slot(&[Some(0)], 0), None
+            determine_insert_slot(&[None, None, None, Some(0)], 3),
+            Some(1)
         );
         assert_eq!(
-            determine_insert_slot(&[Some(0)], 1), None
+            determine_insert_slot(&[None, None, None, None, Some(0)], 4),
+            Some(1)
         );
         assert_eq!(
-            determine_insert_slot(&[Some(0), Some(1)], 0), None
-        );
-        assert_eq!(
-            determine_insert_slot(&[Some(0), Some(1)], 1), None
-        );
-        assert_eq!(
-            determine_insert_slot(&[Some(0), Some(1)], 2), None
+            determine_insert_slot(&[None, None, None, None, None, Some(0)], 5),
+            Some(2)
         );
 
+        assert_eq!(determine_insert_slot(&[Some(0), None, Some(1)], 2), Some(1));
         assert_eq!(
-            determine_insert_slot(&[None, Some(0)], 1), Some(0)
+            determine_insert_slot(&[Some(0), None, None, Some(1)], 3),
+            Some(1)
         );
         assert_eq!(
-            determine_insert_slot(&[None, None, Some(0)], 2), Some(0)
-        );
-        assert_eq!(
-            determine_insert_slot(&[None, None, None, Some(0)], 3), Some(1)
-        );
-        assert_eq!(
-            determine_insert_slot(&[None, None, None, None, Some(0)], 4), Some(1)
-        );
-        assert_eq!(
-            determine_insert_slot(&[None, None, None, None, None, Some(0)], 5), Some(2)
+            determine_insert_slot(&[Some(0), None, None, None, Some(1)], 4),
+            Some(2)
         );
 
+        assert_eq!(determine_insert_slot(&[Some(0), None], 2), Some(1));
+        assert_eq!(determine_insert_slot(&[Some(0), None, None], 3), Some(1));
         assert_eq!(
-            determine_insert_slot(&[Some(0), None, Some(1)], 2), Some(1)
-        );
-        assert_eq!(
-            determine_insert_slot(&[Some(0), None, None, Some(1)], 3), Some(1)
-        );
-        assert_eq!(
-            determine_insert_slot(&[Some(0), None, None, None, Some(1)], 4), Some(2)
-        );
-
-        assert_eq!(
-            determine_insert_slot(&[Some(0), None], 2), Some(1)
-        );
-        assert_eq!(
-            determine_insert_slot(&[Some(0), None, None], 3), Some(1)
-        );
-        assert_eq!(
-            determine_insert_slot(&[Some(0), None, None, None], 4), Some(2)
+            determine_insert_slot(&[Some(0), None, None, None], 4),
+            Some(2)
         );
 
         let all_none: &[Option<i32>] = &[None, None, None];
@@ -470,7 +496,10 @@ mod test {
         assert_eq!(collect(&v_empty1), Vec::<i32>::new());
         assert_eq!(collect(&v_empty2), Vec::<i32>::new());
         assert_eq!(collect(&[Some(20), Some(30)]), vec![20, 30]);
-        assert_eq!(collect(&[None, Some(20), None, Some(30), None]), vec![20, 30]);
+        assert_eq!(
+            collect(&[None, Some(20), None, Some(30), None]),
+            vec![20, 30]
+        );
     }
 
     //#[ignore]
@@ -491,27 +520,59 @@ mod test {
 
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 2, 0, 10),
-            vec![None, None, Some(10), None, None, Some(20), None, None, Some(30), None, None]
+            vec![
+                None,
+                None,
+                Some(10),
+                None,
+                None,
+                Some(20),
+                None,
+                None,
+                Some(30),
+                None,
+                None
+            ]
         );
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 2, 1, 25),
-            vec![None, None, Some(20), None, None, Some(25), None, None, Some(30), None, None]
+            vec![
+                None,
+                None,
+                Some(20),
+                None,
+                None,
+                Some(25),
+                None,
+                None,
+                Some(30),
+                None,
+                None
+            ]
         );
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 2, 2, 40),
-            vec![None, None, Some(20), None, None, Some(30), None, None, Some(40), None, None]
+            vec![
+                None,
+                None,
+                Some(20),
+                None,
+                None,
+                Some(30),
+                None,
+                None,
+                Some(40),
+                None,
+                None
+            ]
         );
 
         let v_empty: Vec<Option<i32>> = vec![];
-        assert_eq!(
-            redistribute(&v_empty, 0, 0, 0, 42),
-            vec![Some(42)]
-        );
+        assert_eq!(redistribute(&v_empty, 0, 0, 0, 42), vec![Some(42)]);
         assert_eq!(
             redistribute(&v_empty, 0, 1, 0, 42),
             vec![None, Some(42), None]
         );
-
     }
 }
 

@@ -1,7 +1,7 @@
+use serde_json::json;
 use std::cmp::Ordering;
 use std::fs::{create_dir_all, File};
 use std::path::Path;
-use serde_json::json;
 
 use std::process::{Command, Stdio};
 
@@ -29,9 +29,7 @@ macro_rules! create_cmp {
 
         #[allow(dead_code)]
         pub fn $get() -> u64 {
-            unsafe {
-                $count
-            }
+            unsafe { $count }
         }
     };
 }
@@ -98,10 +96,16 @@ pub fn export_elapsed_times(
 
 
 pub fn call_plots(benchmark_mode: &str, generator_mode: &str) {
-    let script_path = Path::new(file!()).to_path_buf()
-        .canonicalize().unwrap()
-        .parent().unwrap().to_path_buf() // -> /src
-        .parent().unwrap().to_path_buf() // -> /
+    let script_path = Path::new(file!())
+        .to_path_buf()
+        .canonicalize()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf() // -> /src
+        .parent()
+        .unwrap()
+        .to_path_buf() // -> /
         .join("scripts")
         .join("plot.py");
     Command::new(script_path.as_os_str())
@@ -151,10 +155,16 @@ pub fn export_stats(
 
 
 pub fn call_plots_stats() {
-    let script_path = Path::new(file!()).to_path_buf()
-        .canonicalize().unwrap()
-        .parent().unwrap().to_path_buf() // -> /src
-        .parent().unwrap().to_path_buf() // -> /
+    let script_path = Path::new(file!())
+        .to_path_buf()
+        .canonicalize()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf() // -> /src
+        .parent()
+        .unwrap()
+        .to_path_buf() // -> /
         .join("scripts")
         .join("plot_stats.py");
     Command::new(script_path.as_os_str())
@@ -169,20 +179,19 @@ pub fn call_plots_stats() {
 
 pub fn gen_rand_values(n: usize) -> Vec<f64> {
     let mut rng = rand::thread_rng();
-    let values: Vec<f64> = (0..n).map(|_| rng.gen()).collect();
+    let values: Vec<f64> = (0 .. n).map(|_| rng.gen()).collect();
     values
 }
 
 
 pub fn gen_rand_values_i32(n: usize) -> Vec<i32> {
     let mut rng = rand::thread_rng();
-    let values: Vec<i32> = (0..n).map(|_| rng.gen_range(0, 32)).collect();
+    let values: Vec<i32> = (0 .. n).map(|_| rng.gen_range(0, 32)).collect();
     values
 }
 
 
-pub fn shuffle<T>(v: &mut Vec<T>) -> &mut Vec<T>
-{
+pub fn shuffle<T>(v: &mut Vec<T>) -> &mut Vec<T> {
     let mut rng = thread_rng();
     v.shuffle(&mut rng);
     v

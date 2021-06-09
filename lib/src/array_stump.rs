@@ -7,10 +7,10 @@ pub struct Index {
 }
 
 impl Index {
-    pub const FIRST: Index = Index{outer: 0, inner: 0};
+    pub const FIRST: Index = Index { outer: 0, inner: 0 };
 
     pub fn new(outer: usize, inner: usize) -> Index {
-        Index{outer, inner}
+        Index { outer, inner }
     }
 }
 
@@ -22,7 +22,7 @@ pub struct IndexTransition {
 
 impl IndexTransition {
     pub fn new(old: Index, new: Index) -> IndexTransition {
-        IndexTransition{old, new}
+        IndexTransition { old, new }
     }
 }
 
@@ -79,20 +79,14 @@ where
         }
 
         // Binary search for block index
-        let (idx_block, equals) = binary_search_by(
-            &self.data,
-            |block| (self.comparator)(&block[0], &t),
-        );
+        let (idx_block, equals) =
+            binary_search_by(&self.data, |block| (self.comparator)(&block[0], &t));
         if equals {
             return None;
         }
 
         // Convert from "first larger" to "last smaller" index semantics
-        let mut idx_block = if idx_block > 0 {
-            idx_block - 1
-        } else {
-            0
-        };
+        let mut idx_block = if idx_block > 0 { idx_block - 1 } else { 0 };
 
         // Split block if necessary
         if self.data[idx_block].len() >= self.capacity as usize {
@@ -118,10 +112,8 @@ where
         }
 
         // Binary search for value index
-        let (idx_value, equals) = binary_search_by(
-            &self.data[idx_block],
-            |x| (self.comparator)(&x, &t),
-        );
+        let (idx_value, equals) =
+            binary_search_by(&self.data[idx_block], |x| (self.comparator)(&x, &t));
         if equals {
             return None;
         }
@@ -186,10 +178,14 @@ where
         // Binary search for block index
         let (idx_block, equals) = binary_search_by(
             &self.data,
-            #[inline] |block| (self.comparator)(&block[0], &t),
+            #[inline]
+            |block| (self.comparator)(&block[0], &t),
         );
         if equals {
-            return Some(Index{outer: idx_block, inner: 0});
+            return Some(Index {
+                outer: idx_block,
+                inner: 0,
+            });
         }
 
         // Convert from "first larger" to "last smaller" index semantics
@@ -205,10 +201,14 @@ where
         // Binary search for value index
         let (idx_value, equals) = binary_search_by(
             &self.data[idx_block],
-            #[inline] |x| (self.comparator)(&x, &t),
+            #[inline]
+            |x| (self.comparator)(&x, &t),
         );
         if equals {
-            return Some(Index{outer: idx_block, inner: idx_value});
+            return Some(Index {
+                outer: idx_block,
+                inner: idx_value,
+            });
         }
 
         None
@@ -242,7 +242,10 @@ where
         } else if idx.inner > 0 {
             Some(Index::new(idx.outer, idx.inner - 1))
         } else if idx.outer > 0 {
-            Some(Index::new(idx.outer - 1, self.data[idx.outer - 1].len() - 1))
+            Some(Index::new(
+                idx.outer - 1,
+                self.data[idx.outer - 1].len() - 1,
+            ))
         } else {
             None
         }
@@ -335,9 +338,14 @@ where
 
     pub fn debug_order(&self) {
         println!("--- DEBUG ORDER");
-        let mut remember : Option<&T> = None;
+        let mut remember: Option<&T> = None;
         for (idx, block) in self.data.iter().enumerate() {
-            println!("-- BLOCK #{} ({}/{} elements)", idx, block.len(), block.capacity());
+            println!(
+                "-- BLOCK #{} ({}/{} elements)",
+                idx,
+                block.len(),
+                block.capacity()
+            );
             for value in block {
                 if let Some(last) = remember {
                     println!("{:?}", (self.comparator)(last, value));
@@ -369,7 +377,7 @@ where
             } else {
                 self.prev_index(idx).unwrap()
             }
-        } else if idx < new || old < idx  {
+        } else if idx < new || old < idx {
             idx
         } else {
             self.next_index(idx).unwrap()
@@ -393,23 +401,23 @@ where
             self.prev_index(next).unwrap()
         } else {
             let last_block = self.data.len() - 1;
-            Index::new(last_block, self.data[last_block].len()-1)
+            Index::new(last_block, self.data[last_block].len() - 1)
         };
 
         let element = self.data[idx.outer].remove(idx.inner);
 
-        for block_index in idx.outer..dest.outer {
+        for block_index in idx.outer .. dest.outer {
             let crosser = self.data[block_index + 1].remove(0);
             self.data[block_index].push(crosser);
         }
 
         self.data[dest.outer].insert(dest.inner, element);
 
-        IndexTransition::new( idx, dest )
+        IndexTransition::new(idx, dest)
     }
 
-      // sort element referenced by 'idx' forward (at least before element referenced by 'before')
-      fn sort_element_forward(&mut self, idx: Index, before: Index) -> IndexTransition {
+    // sort element referenced by 'idx' forward (at least before element referenced by 'before')
+    fn sort_element_forward(&mut self, idx: Index, before: Index) -> IndexTransition {
         let cmp = &self.comparator;
         let element = self.get_by_index(idx);
         let mut next = self.prev_index(before);
@@ -429,14 +437,14 @@ where
 
         let element = self.data[idx.outer].remove(idx.inner);
 
-        for block_index in (dest.outer..idx.outer).rev() {
+        for block_index in (dest.outer .. idx.outer).rev() {
             let block = &mut self.data[block_index];
             let crosser = block.remove(block.len() - 1);
             self.data[block_index + 1].insert(0, crosser);
         }
         self.data[dest.outer].insert(dest.inner, element);
 
-        IndexTransition::new( idx, dest )
+        IndexTransition::new(idx, dest)
     }
 
     // ensure order for the elements in range [from, to] is correct
@@ -458,7 +466,9 @@ where
                 if (self.comparator)(element, self.get_by_index(next)) == Ordering::Greater {
                     if let Some(next_next) = next_next {
                         // check whether 'current' needs to go back or 'next' needs to go forward
-                        if (self.comparator)(element, self.get_by_index(next_next)) == Ordering::Greater {
+                        if (self.comparator)(element, self.get_by_index(next_next))
+                            == Ordering::Greater
+                        {
                             result.push(self.sort_element_back(current, next_next));
                         } else {
                             result.push(self.sort_element_forward(next, current));
@@ -523,9 +533,7 @@ where
             Ordering::Greater => {
                 r = mid;
             }
-            Ordering::Equal => {
-                return (mid, true)
-            }
+            Ordering::Equal => return (mid, true),
             Ordering::Less => {
                 l = mid + 1;
             }
@@ -552,11 +560,12 @@ where
         if len <= new_capacity {
             i += 1;
         } else {
-            let num_required_blocks = (len / new_capacity) + if len % new_capacity > 0 { 1 } else { 0 };
+            let num_required_blocks =
+                (len / new_capacity) + if len % new_capacity > 0 { 1 } else { 0 };
             if num_required_blocks == 2 {
                 let divide = get_elements_per_block(0, len, num_required_blocks);
 
-                let block_tail = data[i][divide .. ].to_vec();
+                let block_tail = data[i][divide ..].to_vec();
                 data[i].truncate(divide);
                 data.insert(i + 1, block_tail);
                 i += 2;
@@ -583,10 +592,10 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::cmp::Ordering;
     use pretty_assertions::assert_eq;
-    use rand::{Rng, SeedableRng};
     use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+    use std::cmp::Ordering;
 
     macro_rules! vec2d {
         ($($x:expr),*) => {{
@@ -656,18 +665,36 @@ mod test {
 
     #[test]
     fn test_binary_search_empty() {
-        let data: Vec::<i32> = vec![];
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &0)), (0, false));
+        let data: Vec<i32> = vec![];
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &0)),
+            (0, false)
+        );
     }
 
     #[test]
     fn test_binary_search_basic() {
         let data = [1, 2, 3];
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &0)), (0, false));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &1)), (0, true));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &2)), (1, true));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &3)), (2, true));
-        assert_eq!(binary_search_by(&data, |x| int_comparator(x, &4)), (3, false));
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &0)),
+            (0, false)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &1)),
+            (0, true)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &2)),
+            (1, true)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &3)),
+            (2, true)
+        );
+        assert_eq!(
+            binary_search_by(&data, |x| int_comparator(x, &4)),
+            (3, false)
+        );
     }
 
     #[test]
@@ -772,7 +799,7 @@ mod test {
         // We must make sure that the element at the split index has proper equality check
         let mut a = new_array!(8, vec![vec![5, 7, 11, 17, 19, 22, 29, 30]]);
         let equals = a.insert(19);
-        assert_eq!(equals, None);  // no insertion
+        assert_eq!(equals, None); // no insertion
     }
 
     #[test]
@@ -821,7 +848,108 @@ mod test {
     #[test]
     fn test_failing() {
         let mut at = ArrayStump::new_explicit(|a: &f64, b: &f64| a.partial_cmp(b).unwrap(), 16);
-        let vals = vec![0.6994135560499647, 0.15138991083383901, 0.17989509662598502, 0.22855960374503625, 0.7394173591733456, 0.8606810583068278, 0.025843624735059523, 0.1416162372765526, 0.9789425643425963, 0.6312677864630949, 0.34678659888024466, 0.7876614416763924, 0.6260871506068197, 0.34733559592131624, 0.5722923635764159, 0.14416998787798063, 0.839158671060864, 0.2621428817535354, 0.9334439919690996, 0.016414089291711065, 0.8795903741012259, 0.051958655798298614, 0.8313985552845266, 0.026928982020677505, 0.779969564116276, 0.6437306675337413, 0.03822809941255523, 0.777911020749552, 0.4639770428538855, 0.7039388191038694, 0.31363729764551374, 0.8111651227165783, 0.5174339383176408, 0.49384841003283086, 0.5214549475595969, 0.0823716635367353, 0.7310183483079477, 0.6196297749276181, 0.6226877845880779, 0.8987550167723078, 0.9536731852226494, 0.2719858776118911, 0.837006810218081, 0.7570466272336563, 0.9649096907962248, 0.09547804495341239, 0.26299769639555115, 0.6883529379785718, 0.23545125345269502, 0.5611223421257663, 0.81145380876482, 0.7821846165410649, 0.8385374221326543, 0.2287909449815878, 0.9938012642875733, 0.30515950398348823, 0.021945251189301795, 0.7456118789178752, 0.24917873250483202, 0.19461925257672297, 0.08596890658908873, 0.8208413553993631, 0.2799020116906893, 0.622583855342935, 0.3406868767224045, 0.7125811318179431, 0.8171813899535424, 0.9875530622413784, 0.8124194427320398, 0.27890169087536465, 0.4582999489551358, 0.8170130026270258, 0.1116683852975886, 0.9523649049789342, 0.1626401579175366, 0.7006463636943299, 0.5396656897339597, 0.73824000529768, 0.8975902131523751, 0.3138666758196337, 0.959190654990596, 0.6786382471256971, 0.8807317907186307, 0.9923109213923168, 0.7704353170122445, 0.20331717853087872, 0.9191784945915048, 0.3458975102965529, 0.44567705127366397, 0.08758863415076357, 0.8940937525362007, 0.2046747373689708, 0.1540080303289173, 0.8088614347095653, 0.09821866105193844, 0.050284880746519045, 0.9585396829998039, 0.35100273069739263, 0.8263845327940142, 0.6305932414080216];
+        let vals = vec![
+            0.6994135560499647,
+            0.15138991083383901,
+            0.17989509662598502,
+            0.22855960374503625,
+            0.7394173591733456,
+            0.8606810583068278,
+            0.025843624735059523,
+            0.1416162372765526,
+            0.9789425643425963,
+            0.6312677864630949,
+            0.34678659888024466,
+            0.7876614416763924,
+            0.6260871506068197,
+            0.34733559592131624,
+            0.5722923635764159,
+            0.14416998787798063,
+            0.839158671060864,
+            0.2621428817535354,
+            0.9334439919690996,
+            0.016414089291711065,
+            0.8795903741012259,
+            0.051958655798298614,
+            0.8313985552845266,
+            0.026928982020677505,
+            0.779969564116276,
+            0.6437306675337413,
+            0.03822809941255523,
+            0.777911020749552,
+            0.4639770428538855,
+            0.7039388191038694,
+            0.31363729764551374,
+            0.8111651227165783,
+            0.5174339383176408,
+            0.49384841003283086,
+            0.5214549475595969,
+            0.0823716635367353,
+            0.7310183483079477,
+            0.6196297749276181,
+            0.6226877845880779,
+            0.8987550167723078,
+            0.9536731852226494,
+            0.2719858776118911,
+            0.837006810218081,
+            0.7570466272336563,
+            0.9649096907962248,
+            0.09547804495341239,
+            0.26299769639555115,
+            0.6883529379785718,
+            0.23545125345269502,
+            0.5611223421257663,
+            0.81145380876482,
+            0.7821846165410649,
+            0.8385374221326543,
+            0.2287909449815878,
+            0.9938012642875733,
+            0.30515950398348823,
+            0.021945251189301795,
+            0.7456118789178752,
+            0.24917873250483202,
+            0.19461925257672297,
+            0.08596890658908873,
+            0.8208413553993631,
+            0.2799020116906893,
+            0.622583855342935,
+            0.3406868767224045,
+            0.7125811318179431,
+            0.8171813899535424,
+            0.9875530622413784,
+            0.8124194427320398,
+            0.27890169087536465,
+            0.4582999489551358,
+            0.8170130026270258,
+            0.1116683852975886,
+            0.9523649049789342,
+            0.1626401579175366,
+            0.7006463636943299,
+            0.5396656897339597,
+            0.73824000529768,
+            0.8975902131523751,
+            0.3138666758196337,
+            0.959190654990596,
+            0.6786382471256971,
+            0.8807317907186307,
+            0.9923109213923168,
+            0.7704353170122445,
+            0.20331717853087872,
+            0.9191784945915048,
+            0.3458975102965529,
+            0.44567705127366397,
+            0.08758863415076357,
+            0.8940937525362007,
+            0.2046747373689708,
+            0.1540080303289173,
+            0.8088614347095653,
+            0.09821866105193844,
+            0.050284880746519045,
+            0.9585396829998039,
+            0.35100273069739263,
+            0.8263845327940142,
+            0.6305932414080216,
+        ];
         for (i, x) in vals.iter().enumerate() {
             at.insert(*x);
             let mut expected = vals[0 .. i + 1].to_vec();
@@ -876,27 +1004,28 @@ mod test {
     fn test_apply_reduced_capacity() {
         let mut data = vec2d![[1, 2], [1, 2], [1, 2]];
         apply_reduced_capacity(&mut data, 2);
-        assert_eq!(
-            data,
-            vec2d![[1, 2], [1, 2], [1, 2]]
-        );
+        assert_eq!(data, vec2d![[1, 2], [1, 2], [1, 2]]);
         let mut data = vec2d![[1, 2, 3], [1, 2, 3], [1, 2, 3]];
         apply_reduced_capacity(&mut data, 2);
-        assert_eq!(
-            data,
-            vec2d![[1, 2], [3], [1, 2], [3], [1, 2], [3]],
-        );
+        assert_eq!(data, vec2d![[1, 2], [3], [1, 2], [3], [1, 2], [3]],);
         let mut data = vec2d![[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]];
         apply_reduced_capacity(&mut data, 2);
-        assert_eq!(
-            data,
-            vec2d![[1, 2], [3, 4], [1, 2], [3, 4], [1, 2], [3, 4]],
-        );
+        assert_eq!(data, vec2d![[1, 2], [3, 4], [1, 2], [3, 4], [1, 2], [3, 4]],);
         let mut data = vec2d![[1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]];
         apply_reduced_capacity(&mut data, 2);
         assert_eq!(
             data,
-            vec2d![[1, 2], [3, 4], [5], [1, 2], [3, 4], [5], [1, 2], [3, 4], [5]],
+            vec2d![
+                [1, 2],
+                [3, 4],
+                [5],
+                [1, 2],
+                [3, 4],
+                [5],
+                [1, 2],
+                [3, 4],
+                [5]
+            ],
         );
     }
 
@@ -904,16 +1033,10 @@ mod test {
     fn test_apply_reduced_capacity_favor_equal_splits() {
         let mut data = vec2d![[1, 2, 3, 4, 5]];
         apply_reduced_capacity(&mut data, 4);
-        assert_eq!(
-            data,
-            vec2d![[1, 2, 3], [4, 5]],
-        );
+        assert_eq!(data, vec2d![[1, 2, 3], [4, 5]],);
         let mut data = vec2d![[1, 2, 3, 4, 5, 6, 7, 8, 9]];
         apply_reduced_capacity(&mut data, 4);
-        assert_eq!(
-            data,
-            vec2d![[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-        );
+        assert_eq!(data, vec2d![[1, 2, 3], [4, 5, 6], [7, 8, 9]],);
     }
 
     #[test]
@@ -930,16 +1053,10 @@ mod test {
     fn test_apply_reduced_capacity_multi_split() {
         let mut data = vec2d![[1, 2, 3, 4, 5, 6]];
         apply_reduced_capacity(&mut data, 2);
-        assert_eq!(
-            data,
-            vec2d![[1, 2], [3, 4], [5, 6]],
-        );
+        assert_eq!(data, vec2d![[1, 2], [3, 4], [5, 6]],);
         let mut data = vec2d![[1, 2, 3, 4, 5, 6, 7]];
         apply_reduced_capacity(&mut data, 3);
-        assert_eq!(
-            data,
-            vec2d![[1, 2, 3], [4, 5], [6, 7]],
-        );
+        assert_eq!(data, vec2d![[1, 2, 3], [4, 5], [6, 7]],);
     }
 
     // ------------------------------------------------------------------------
@@ -1006,7 +1123,7 @@ mod test {
             assert_eq!(a.fix_rank_range(c.unwrap(), c.unwrap()).len(), 0);
             c = a.next_index(c.unwrap());
         }
-        assert_eq!(a.fix_rank_range(Index::FIRST, Index::new(2,1)).len(), 0);
+        assert_eq!(a.fix_rank_range(Index::FIRST, Index::new(2, 1)).len(), 0);
 
         // find the right place for an element to go
         a.data[0][0] = 5;
@@ -1023,7 +1140,7 @@ mod test {
         // fix multiple element range at once
         a.data[1][1] = 2;
         a.data[2][0] = 20;
-        let ts = a.fix_rank_range(Index::new(1,0),Index::new(2,0));
+        let ts = a.fix_rank_range(Index::new(1, 0), Index::new(2, 0));
         assert_eq!(a.data, [vec![1, 2], vec![3, 4], vec![12, 20]]);
         assert_eq!(a.fix_index(&ts, Index::new(1, 0)), Index::new(0, 0));
         assert_eq!(a.fix_index(&ts, Index::new(1, 1)), Index::new(0, 1));

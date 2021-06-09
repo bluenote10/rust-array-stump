@@ -3,8 +3,8 @@ use std::cmp::Ordering;
 
 use super::helpers::{gen_rand_values_i32, shuffle_clone};
 
-use array_stump::ArrayStump;
 use super::alternatives::splay::SplaySet;
+use array_stump::ArrayStump;
 
 
 // TODO: Similar functionality is in core array_stump. Introduce "testing" feature, if more
@@ -60,7 +60,6 @@ fn insert_and_remove() {
                     assert_eq!(set_a.len(), set_b.len());
                     assert_eq!(set_a.collect(), set_b.collect());
                 }
-
             }
         }
     }
@@ -89,7 +88,6 @@ fn find() {
                         let res_b = set_b.find(&y);
                         assert_eq!(res_a.is_some(), res_b.is_some());
                     }
-
                 }
             }
         }
@@ -118,7 +116,6 @@ fn find_and_remove_by_index() {
                     set_b.remove(x);
                     assert_eq!(set_a.collect(), set_b.collect());
                 }
-
             }
         }
     }
