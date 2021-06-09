@@ -16,11 +16,11 @@ jobs:
     strategy:
       matrix:
         rust:
+          - "1.45.0"
           - stable
-          - beta
           - nightly
 
-    name: Rust ${{ matrix.nim }}
+    name: Rust ${{ matrix.rust }}
 
     steps:
       - uses: actions/checkout@master
