@@ -184,7 +184,7 @@ mod test {
         let mut min = i32::MAX;
         let mut max = i32::MIN;
 
-        for _ in 0..400 {
+        for _ in 0 .. 400 {
             let i: i32 = random();
             m.insert(i, i);
             v.push(i);

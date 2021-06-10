@@ -1,7 +1,8 @@
-
 use clap::{App, AppSettings, Arg};
 
-use array_stump_benchmarks::benchmarks::{BenchmarkMode, BenchmarkParams, GeneratorMode, run_benchmarks};
+use array_stump_benchmarks::benchmarks::{
+    run_benchmarks, BenchmarkMode, BenchmarkParams, GeneratorMode,
+};
 
 fn main() {
     #[rustfmt::skip]
@@ -27,8 +28,8 @@ fn main() {
     let bench_mode = match bench_mode.as_ref() {
         "insert" => BenchmarkMode::Insert,
         "remove" => BenchmarkMode::Remove,
-        "find_rand" => BenchmarkMode::Find{ recent: false },
-        "find_recent" => BenchmarkMode::Find{ recent: true },
+        "find_rand" => BenchmarkMode::Find { recent: false },
+        "find_recent" => BenchmarkMode::Find { recent: true },
         _ => panic!("Illegal benchmark mode"),
     };
     let gen_mode = match gen_mode.as_ref() {

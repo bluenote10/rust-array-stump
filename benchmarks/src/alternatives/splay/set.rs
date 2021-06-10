@@ -62,7 +62,10 @@ where
         self.tree.max()
     }
 
-    pub fn traverse<F>(&self, mut traverse: F) where F: FnMut(&T) {
+    pub fn traverse<F>(&self, mut traverse: F)
+    where
+        F: FnMut(&T),
+    {
         self.tree.traverse(&mut |k, _| traverse(k));
     }
 }

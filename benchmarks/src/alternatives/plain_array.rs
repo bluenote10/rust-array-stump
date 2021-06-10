@@ -31,9 +31,7 @@ where
 
     pub fn insert(&mut self, t: T) -> bool {
         match self.data.binary_search_by(|x| (self.comparator)(x, &t)) {
-            Ok(_) => {
-                false
-            }
+            Ok(_) => false,
             Err(idx) => {
                 if idx < self.data.len() {
                     self.data.insert(idx, t);
@@ -51,14 +49,11 @@ where
                 self.data.remove(idx);
                 true
             }
-            Err(_) => {
-                false
-            }
+            Err(_) => false,
         }
     }
 
     pub fn collect(&self) -> Vec<T> {
         self.data.clone()
     }
-
 }

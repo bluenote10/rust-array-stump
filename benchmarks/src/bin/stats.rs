@@ -1,4 +1,3 @@
-
 use clap::{App, AppSettings, Arg};
 
 use array_stump_benchmarks::create_cmp;
@@ -6,10 +5,14 @@ use array_stump_benchmarks::helpers;
 
 use array_stump::ArrayStump;
 
-use std::time::Instant;
 use pretty_assertions::assert_eq;
+use std::time::Instant;
 
-create_cmp!(cmp_array_tree, get_num_calls_array_tree, NUM_CALLS_ARRAY_TREE);
+create_cmp!(
+    cmp_array_tree,
+    get_num_calls_array_tree,
+    NUM_CALLS_ARRAY_TREE
+);
 
 fn run_fill_statistics() {
     #[rustfmt::skip]
@@ -31,7 +34,7 @@ fn run_fill_statistics() {
         "avg" => helpers::gen_rand_values(n),
         "asc" => (0 .. n).map(|x| x as f64 / n as f64).collect(),
         "dsc" => (0 .. n).map(|x| x as f64 / n as f64).rev().collect(),
-        _ => panic!("Invalid generator mode")
+        _ => panic!("Invalid generator mode"),
     };
 
     let mut set = ArrayStump::new_explicit(cmp_array_tree, 256);
@@ -83,7 +86,16 @@ fn run_fill_statistics() {
     }
 
     println!("Exporting...");
-    helpers::export_stats(&iters, &times, &fill_ratio, &fill_min, &fill_max, &num_blocks, &capacity, &num_cmp_calls);
+    helpers::export_stats(
+        &iters,
+        &times,
+        &fill_ratio,
+        &fill_min,
+        &fill_max,
+        &num_blocks,
+        &capacity,
+        &num_cmp_calls,
+    );
     helpers::call_plots_stats();
 }
 

@@ -21,7 +21,9 @@ where
         SlotArray {
             spacing,
             comparator,
-            data_raw: iter::repeat(None).take(initial_capacity * (spacing + 1)).collect(),
+            data_raw: iter::repeat(None)
+                .take(initial_capacity * (spacing + 1))
+                .collect(),
             num_elements: 0,
         }
     }
@@ -35,7 +37,11 @@ where
     }
 
     pub fn insert(&mut self, t: T) -> bool {
-        let (index_larger_or_equal, equals) = binary_search_by(&self.data_raw, #[inline(always)] |x| (self.comparator)(x, &t));
+        let (index_larger_or_equal, equals) = binary_search_by(
+            &self.data_raw,
+            #[inline(always)]
+            |x| (self.comparator)(x, &t),
+        );
 
         if !equals {
             let insert_slot = determine_insert_slot(&self.data_raw, index_larger_or_equal);
@@ -43,7 +49,13 @@ where
             if let Some(idx) = insert_slot {
                 self.data_raw[idx] = Some(t);
             } else {
-                self.data_raw = redistribute(&self.data_raw, self.num_elements, self.spacing, index_larger_or_equal, t);
+                self.data_raw = redistribute(
+                    &self.data_raw,
+                    self.num_elements,
+                    self.spacing,
+                    index_larger_or_equal,
+                    t,
+                );
             }
             self.num_elements += 1;
 
@@ -54,7 +66,11 @@ where
     }
 
     pub fn remove(&mut self, t: &T) -> bool {
-        let (index_larger_or_equal, equals) = binary_search_by(&self.data_raw, #[inline(always)] |x| (self.comparator)(x, &t));
+        let (index_larger_or_equal, equals) = binary_search_by(
+            &self.data_raw,
+            #[inline(always)]
+            |x| (self.comparator)(x, &t),
+        );
         if equals {
             self.data_raw[index_larger_or_equal] = None;
             self.num_elements -= 1;
@@ -71,7 +87,6 @@ where
     pub fn debug(&self) {
         println!("{:?}", self.data_raw);
     }
-
 }
 
 
@@ -192,9 +207,15 @@ fn determine_insert_slot<'a, T>(data: &'a [Option<T>], insert_index: usize) -> O
 }
 
 #[allow(clippy::needless_lifetimes)]
-fn redistribute<'a, T>(data: &'a [Option<T>], num_elements: usize, spacing: usize, insert_index: usize, t: T) -> Vec<Option<T>>
+fn redistribute<'a, T>(
+    data: &'a [Option<T>],
+    num_elements: usize,
+    spacing: usize,
+    insert_index: usize,
+    t: T,
+) -> Vec<Option<T>>
 where
-    T: Clone
+    T: Clone,
 {
     // println!("\nredistribute:");
     if num_elements == 0 {
@@ -297,9 +318,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::cmp::Ordering;
-    use rand::{Rng, SeedableRng};
     use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+    use std::cmp::Ordering;
 
     pub fn binary_search_by_reference<T, F>(data: &[Option<T>], mut f: F) -> (usize, bool)
     where
@@ -324,6 +345,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn test_binary_search_by() {
         let data = [Some(1), Some(2), Some(3)];
         assert_eq!(binary_search_by(&data, |x| int_comparator(x, &0)), (0, false));
@@ -354,7 +376,11 @@ mod test {
         (data, values)
     }
 
-    fn insert_random_slots(rng: &mut StdRng, data: &[Option<i32>], slot_prob: f64) -> Vec<Option<i32>> {
+    fn insert_random_slots(
+        rng: &mut StdRng,
+        data: &[Option<i32>],
+        slot_prob: f64,
+    ) -> Vec<Option<i32>> {
         let mut data_with_slots = Vec::new();
         let mut i = 0;
         while i < data.len() {
@@ -402,6 +428,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn test_determine_insert_slot() {
         // cases without free slot
         assert_eq!(
@@ -470,11 +497,14 @@ mod test {
         assert_eq!(collect(&v_empty1), Vec::<i32>::new());
         assert_eq!(collect(&v_empty2), Vec::<i32>::new());
         assert_eq!(collect(&[Some(20), Some(30)]), vec![20, 30]);
-        assert_eq!(collect(&[None, Some(20), None, Some(30), None]), vec![20, 30]);
+        assert_eq!(
+            collect(&[None, Some(20), None, Some(30), None]),
+            vec![20, 30]
+        );
     }
 
-    //#[ignore]
     #[test]
+    #[rustfmt::skip]
     fn test_redistribute() {
         assert_eq!(
             redistribute(&[Some(20), Some(30)], 2, 0, 0, 10),
