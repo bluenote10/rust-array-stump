@@ -12,7 +12,7 @@ A data structure mixing dynamic array and sorted set semantics.
 
 ### Algorithm in 10 seconds
 
-![Algorithm Visualization](docs/algorithm_visualization.gif)
+[![Algorithm Visualization](docs/algorithm_visualization.gif)](https://github.com/bluenote10/NimSvg)
 
 Algorithmic notes:
 - In general, the data structure is similar to [hashed array trees](https://en.wikipedia.org/wiki/Hashed_array_tree), but optimized for insert/remove in the middle instead of inserting/removing at the end.
